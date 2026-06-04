@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Template Generator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"SF Mono","Fira Code",monospace;
+  --bg:#fff;--bg2:#f5f4ef;--bg3:#eeede8;--bg4:#e7e5de;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--text4:#b4b2a9;
+  --border:rgba(0,0,0,0.11);--border2:rgba(0,0,0,0.20);--border3:rgba(0,0,0,0.30);
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-text:#0C447C;--blue-border:#85B7EB;
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-text:#27500A;--green-border:#97C459;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-text:#633806;--amber-border:#EF9F27;
+  --red:#A32D2D;--red-bg:#FCEBEB;--red-text:#791F1F;--red-border:#F09595;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;--teal-text:#085041;--teal-border:#5DCAA5;
+  --r:8px;--rl:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#252522;--bg3:#2c2c2a;--bg4:#333330;
+  --text:#e8e6df;--text2:#9c9a92;--text3:#6b6966;--text4:#4a4846;
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--border3:rgba(255,255,255,0.26);
+  --blue:#378ADD;--blue-bg:#042C53;--blue-text:#B5D4F4;--blue-border:#185FA5;
+  --green:#639922;--green-bg:#173404;--green-text:#C0DD97;--green-border:#3B6D11;
+  --amber:#EF9F27;--amber-bg:#412402;--amber-text:#FAC775;--amber-border:#854F0B;
+  --red:#E24B4A;--red-bg:#501313;--red-text:#F7C1C1;--red-border:#A32D2D;
+  --teal:#1D9E75;--teal-bg:#04342C;--teal-text:#9FE1CB;--teal-border:#0F6E56;
+}}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+
+/* LEFT PANEL */
+.left{background:var(--bg2);border-right:0.5px solid var(--border2);padding:24px 0;display:flex;flex-direction:column}
+.left-header{padding:0 20px 20px;border-bottom:0.5px solid var(--border)}
+.logo{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.logo-sub{font-size:11px;color:var(--text3)}
+.steps{padding:20px 0}
+.step{display:flex;align-items:center;gap:10px;padding:8px 20px;cursor:pointer;transition:background .1s;position:relative}
+.step:hover{background:var(--bg3)}
+.step.active{background:var(--bg3)}
+.step.active::after{content:'';position:absolute;right:0;top:4px;bottom:4px;width:2px;background:var(--text);border-radius:1px 0 0 1px}
+.step-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;background:var(--bg4);color:var(--text3);border:0.5px solid var(--border2)}
+.step.done .step-num{background:var(--green-bg);color:var(--green-text);border-color:var(--green-border)}
+.step.active .step-num{background:var(--text);color:var(--bg);border-color:var(--text)}
+.step-label{font-size:12px;color:var(--text2)}
+.step.active .step-label{color:var(--text);font-weight:500}
+.step.done .step-label{color:var(--text2)}
+
+.summary-box{margin:auto 20px 0;padding:14px;background:var(--bg3);border-radius:var(--rl);border:0.5px solid var(--border)}
+.sb-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px}
+.sb-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.sb-key{color:var(--text2)}
+.sb-val{color:var(--text);font-weight:500}
+
+/* RIGHT PANEL */
+.right{padding:32px 40px;overflow-y:auto;max-height:100vh}
+.step-content{display:none;max-width:720px}
+.step-content.active{display:block}
+.step-title{font-size:22px;font-weight:500;margin-bottom:6px}
+.step-desc{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.6}
+
+/* FORM ELEMENTS */
+label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+input[type=text],textarea{width:100%;padding:10px 12px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;transition:border-color .12s;resize:vertical}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
+.field{margin-bottom:20px}
+.field-hint{font-size:11px;color:var(--text3);margin-top:5px}
+
+/* SCENARIO CARDS */
+.scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px}
+.sc-card{border:0.5px solid var(--border);border-radius:var(--rl);padding:12px 14px;cursor:pointer;transition:all .12s;background:var(--bg)}
+.sc-card:hover{border-color:var(--border2);background:var(--bg2)}
+.sc-card.selected{border-color:var(--blue);background:var(--blue-bg)}
+.sc-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.sc-card.selected .sc-name{color:var(--blue-text)}
+.sc-desc{font-size:11px;color:var(--text3);line-height:1.4}
+.sc-card.selected .sc-desc{color:var(--blue)}
+.sc-count{font-size:10px;font-weight:500;padding:2px 6px;border-radius:20px;margin-top:7px;display:inline-block}
+
+/* SECTION CHECKLIST */
+.section-groups{display:flex;flex-direction:column;gap:16px;margin-bottom:24px}
+.sec-group{}
+.sec-group-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;padding-bottom:5px;border-bottom:0.5px solid var(--border)}
+.sec-items{display:flex;flex-direction:column;gap:4px}
+.sec-item{display:flex;align-items:start;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;transition:background .1s;border:0.5px solid transparent}
+.sec-item:hover{background:var(--bg2)}
+.sec-item.checked{background:var(--green-bg);border-color:var(--green-border)}
+.sec-item.sr-highlight{border-color:var(--amber-border)}
+.sec-cb{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:1px}
+.sec-info{flex:1;min-width:0}
+.sec-name{font-size:13px;font-weight:500;color:var(--text)}
+.sec-item.checked .sec-name{color:var(--green-text)}
+.sec-hint{font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;line-height:1.4}
+.sec-meta{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center}
+.tag{font-size:10px;padding:1px 6px;border-radius:20px;border:0.5px solid transparent;font-weight:500}
+.tag-dh{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.tag-ov{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.tag-fe{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC}
+.tag-cx{background:var(--teal-bg);color:var(--teal-text);border-color:var(--teal-border)}
+.tag-be{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
+.tag-sh{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.tag-light{background:var(--green-bg);color:var(--green-text);border-color:var(--green-border)}
+.tag-medium{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
+.tag-heavy{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
+.sec-sr-badge{font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;background:var(--amber-bg);color:var(--amber-text);border:0.5px solid var(--amber-border)}
+
+/* PREVIEW */
+.preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.preview-stats{display:flex;gap:8px}
+.stat{font-size:12px;color:var(--text2);background:var(--bg2);padding:3px 9px;border-radius:20px;border:0.5px solid var(--border)}
+.preview-list{border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:24px}
+.pl-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:0.5px solid var(--border);font-size:13px}
+.pl-item:last-child{border-bottom:none}
+.pl-num{font-family:var(--mono);font-size:10px;color:var(--text3);width:20px;flex-shrink:0}
+.pl-name{flex:1;font-weight:500}
+.pl-trigger{font-size:11px;color:var(--text3)}
+.pl-file{font-family:var(--mono);font-size:11px;color:var(--text3)}
+
+.output-box{border:0.5px solid var(--border2);border-radius:var(--rl);overflow:hidden;margin-bottom:20px}
+.ob-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-bottom:0.5px solid var(--border)}
+.ob-title{font-size:12px;font-weight:500;color:var(--text2)}
+.ob-copy{font-size:11px;padding:3px 9px;border:0.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s}
+.ob-copy:hover{background:var(--bg3);color:var(--text)}
+.ob-copy.copied{color:var(--green-text);border-color:var(--green-border)}
+.ob-body{padding:14px;font-family:var(--mono);font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;max-height:320px;overflow-y:auto;background:var(--bg)}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn{padding:9px 20px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid transparent;transition:all .12s;display:flex;align-items:center;gap:6px}
+.btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn-primary:hover{opacity:.88}
+.btn-secondary{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-secondary:hover{background:var(--bg2);color:var(--text)}
+.btn-success{background:var(--green-bg);color:var(--green-text);border-color:var(--green-border)}
+.btn-success:hover{opacity:.88}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.divider{height:0.5px;background:var(--border);margin:24px 0}
+.inline-hint{display:flex;gap:8px;padding:10px 12px;background:var(--blue-bg);border-radius:var(--r);border:0.5px solid var(--blue-border);font-size:12px;color:var(--blue-text);margin-bottom:20px;line-height:1.5}
+.select-all-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.select-all-row span{font-size:11px;color:var(--text3)}
+.mini-btn{font-size:11px;padding:3px 9px;border:0.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text2);cursor:pointer}
+.mini-btn:hover{background:var(--bg2);color:var(--text)}
+
+/* GUIDE DRAWER */
+.guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.guide-overlay.open{opacity:1;pointer-events:all}
+.guide-drawer{position:fixed;top:0;right:0;bottom:0;width:min(680px,90vw);background:var(--bg);border-left:0.5px solid var(--border2);z-index:101;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.guide-drawer.open{transform:translateX(0)}
+.guide-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg2)}
+.guide-title{font-size:13px;font-weight:500;color:var(--text)}
+.guide-close{width:28px;height:28px;border:0.5px solid var(--border2);border-radius:6px;background:transparent;cursor:pointer;color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.guide-close:hover{background:var(--bg3)}
+.guide-body{flex:1;overflow-y:auto;padding:24px}
+.guide-body h1{font-size:17px;font-weight:500;margin-bottom:4px;color:var(--text)}
+.guide-body h2{font-size:13px;font-weight:500;margin:20px 0 8px;color:var(--text);text-transform:uppercase;letter-spacing:.04em;opacity:.6}
+.guide-body h3{font-size:13px;font-weight:500;margin:16px 0 6px;color:var(--text)}
+.guide-body p{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:10px}
+.guide-body ul,.guide-body ol{font-size:13px;color:var(--text2);line-height:1.7;padding-left:18px;margin-bottom:10px}
+.guide-body li{margin-bottom:2px}
+.guide-body strong{font-weight:500;color:var(--text)}
+.guide-body em{color:var(--text3)}
+.guide-body code{font-family:var(--mono);font-size:11px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--text)}
+.guide-body pre{background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--text2);overflow-x:auto;margin-bottom:12px;white-space:pre}
+.guide-body table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
+.guide-body th{background:var(--bg2);padding:6px 10px;text-align:left;font-size:11px;font-weight:500;border-bottom:0.5px solid var(--border2);color:var(--text2)}
+.guide-body td{padding:6px 10px;border-bottom:0.5px solid var(--border);color:var(--text2);vertical-align:top}
+.guide-body tr:last-child td{border-bottom:none}
+.guide-body blockquote{border-left:2px solid var(--border2);margin:0 0 12px;padding:6px 12px}
+.guide-body blockquote p{margin:0;color:var(--text3)}
+.guide-body hr{border:none;border-top:0.5px solid var(--border);margin:16px 0}
+.guide-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);cursor:pointer;padding:2px 6px;border:0.5px solid var(--border);border-radius:4px;background:transparent;transition:all .1s;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.guide-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg2)}
+
+/* CUSTOM SECTION / SCENARIO */
+.custom-panel{margin-top:16px;border:0.5px dashed var(--border2);border-radius:var(--rl);overflow:hidden}
+.custom-panel-header{padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text2);user-select:none;transition:background .1s}
+.custom-panel-header:hover{background:var(--bg2)}
+.custom-panel-header span{font-weight:500;color:var(--text)}
+.custom-panel-body{display:none;padding:14px;border-top:0.5px solid var(--border);background:var(--bg)}
+.custom-panel-body.open{display:block}
+.custom-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.custom-row input,.custom-row select{flex:1;min-width:100px;padding:6px 9px;font-size:12px;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg2);color:var(--text);font-family:var(--font)}
+.custom-row input:focus,.custom-row select:focus{outline:none;border-color:var(--blue);background:var(--bg)}
+.custom-row input::placeholder{color:var(--text4)}
+.custom-add-btn{padding:6px 14px;font-size:12px;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg2);color:var(--text);cursor:pointer;transition:all .1s;font-family:var(--font)}
+.custom-add-btn:hover{background:var(--bg3);border-color:var(--border3)}
+.custom-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 7px;border-radius:4px;margin-right:4px;margin-bottom:4px}
+.custom-tag button{background:none;border:none;cursor:pointer;color:inherit;opacity:.6;font-size:13px;line-height:1;padding:0}
+.custom-tag button:hover{opacity:1}
+.custom-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;min-height:20px}
+.rating-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.rating-row label{font-size:11px;color:var(--text2);min-width:110px}
+.rating-select{width:60px;padding:3px 5px;font-size:11px;border:0.5px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text)}
+
+/* CUSTOM SECTION / SCENARIO FORMS */
+.custom-block{border:0.5px dashed var(--border2);border-radius:var(--rl);padding:16px;margin-top:8px;background:var(--bg)}
+.custom-block-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.custom-block-title::before{content:'＋';font-size:13px}
+.custom-form{display:none;flex-direction:column;gap:10px}
+.custom-form.open{display:flex}
+.custom-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.custom-row.triple{grid-template-columns:1fr 1fr 1fr}
+.cf-label{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px}
+.cf-input{width:100%;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:var(--font);font-size:12px}
+.cf-input:focus{outline:none;border-color:var(--border3)}
+select.cf-input{cursor:pointer}
+.cf-textarea{width:100%;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;resize:vertical;min-height:90px;line-height:1.5}
+.cf-textarea:focus{outline:none;border-color:var(--border3)}
+.custom-add-btn{padding:7px 16px;border:0.5px solid var(--blue-border);border-radius:var(--r);background:var(--blue-bg);color:var(--blue-text);font-size:12px;font-weight:500;cursor:pointer;align-self:flex-start}
+.custom-add-btn:hover{background:var(--blue);color:#fff}
+.custom-toggle-btn{font-size:11px;color:var(--text3);cursor:pointer;background:none;border:none;text-decoration:underline;padding:0}
+.custom-toggle-btn:hover{color:var(--text)}
+.rating-grid{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+.rating-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:4px 0;border-bottom:0.5px solid var(--border)}
+.rating-row:last-child{border-bottom:none}
+.rating-sec-name{font-size:12px;color:var(--text2)}
+.rating-select{padding:3px 6px;border:0.5px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);font-size:11px;cursor:pointer}
+.custom-scenario-ratings{border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;max-height:260px;overflow-y:auto;margin-top:4px}
+.csr-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 10px;border-bottom:0.5px solid var(--border)}
+.csr-row:last-child{border-bottom:none}
+.csr-name{font-size:12px;color:var(--text2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.csr-btns{display:flex;gap:3px;flex-shrink:0}
+.state-pill{padding:3px 9px;font-size:11px;font-weight:500;border:0.5px solid var(--border2);border-radius:12px;background:var(--bg2);color:var(--text3);cursor:pointer;font-family:var(--font);transition:all .1s;user-select:none}
+.state-pill:hover{color:var(--text);border-color:var(--border3)}
+.state-pill.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.csr-btn{padding:3px 8px;font-size:11px;font-weight:500;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text3);cursor:pointer;font-family:var(--font);transition:all .1s;user-select:none}
+.csr-btn:hover{color:var(--text);border-color:var(--border3)}
+.csr-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.custom-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--teal-bg);color:var(--teal-text);border:0.5px solid var(--teal-border);margin:2px}
+.custom-tag-del{cursor:pointer;opacity:.6;font-size:12px}
+.custom-tag-del:hover{opacity:1}
+
+/* EXPERIENCE TOGGLE */
+.exp-toggle{display:flex;align-items:center;gap:0;border:0.5px solid var(--border2);border-radius:6px;overflow:hidden;margin-top:12px}
+.exp-btn{flex:1;padding:5px 0;font-size:11px;font-weight:500;cursor:pointer;background:transparent;border:none;color:var(--text3);transition:all .12s;font-family:var(--font)}
+.exp-btn.active{background:var(--text);color:var(--bg)}
+.exp-btn:first-child{border-right:0.5px solid var(--border2)}
+
+.guide-hint{display:block;margin:4px 0 8px;padding:6px 10px;background:var(--amber-bg);border-left:2px solid var(--amber-border);border-radius:0 4px 4px 0;font-size:11px;color:var(--amber-text);line-height:1.55;white-space:pre-wrap;font-family:var(--font)}
+.ob-mode-toggle{display:flex;align-items:center;gap:0;border:0.5px solid var(--border2);border-radius:5px;overflow:hidden;margin-left:auto}
+.ob-mode-btn{padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;background:transparent;border:none;color:var(--text3);transition:all .12s;font-family:var(--font)}
+.ob-mode-btn.active{background:var(--text);color:var(--bg)}
+.ob-mode-btn:first-child{border-right:0.5px solid var(--border2)}
+
+/* FRAMEWORK SELECTOR */
+.fw-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.fw-btn{padding:5px 14px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)}
+.fw-btn:hover{background:var(--bg3);border-color:var(--border3)}
+.fw-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.fw-none{color:var(--text4);font-style:italic}
+
+/* TECH STACK SELECTOR */
+.tech-panel{margin-bottom:16px;border:0.5px solid var(--border2);border-radius:var(--rl);overflow:hidden}
+.tech-panel-header{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .1s}
+.tech-panel-header:hover{background:var(--bg2)}
+.tech-panel-header-left{display:flex;align-items:center;gap:8px}
+.tech-panel-title{font-size:12px;font-weight:500;color:var(--text)}
+.tech-panel-summary{font-size:11px;color:var(--text3);margin-left:4px}
+.tech-panel-body{display:none;padding:14px;border-top:0.5px solid var(--border);background:var(--bg)}
+.tech-panel-body.open{display:block}
+.tech-category{margin-bottom:14px}
+.tech-category:last-child{margin-bottom:0}
+.tech-cat-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
+.tech-pills{display:flex;flex-wrap:wrap;gap:6px}
+.tech-pill{padding:4px 12px;font-size:11px;font-weight:500;border:0.5px solid var(--border2);border-radius:20px;background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)}
+.tech-pill:hover{border-color:var(--border3);color:var(--text)}
+.tech-pill.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tech-panel-arrow{font-size:11px;color:var(--text3)}
+
+/* SETTINGS */
+.settings-btn{margin-top:auto;padding:10px 20px;border-top:0.5px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text3);transition:color .1s;background:none;border-left:none;border-right:none;border-bottom:none;width:100%;font-family:var(--font);text-align:left}
+.settings-btn:hover{color:var(--text)}
+.settings-btn svg{flex-shrink:0}
+.settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.settings-overlay.open{opacity:1;pointer-events:all}
+.settings-drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,92vw);background:var(--bg);border-left:0.5px solid var(--border2);z-index:201;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.settings-drawer.open{transform:translateX(0)}
+.settings-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg2)}
+.settings-hdr-title{font-size:13px;font-weight:500}
+.settings-close{width:28px;height:28px;border:0.5px solid var(--border2);border-radius:6px;background:transparent;cursor:pointer;color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;font-family:var(--font)}
+.settings-close:hover{background:var(--bg3)}
+.settings-body{flex:1;overflow-y:auto;padding:20px}
+.settings-group{margin-bottom:24px}
+.settings-group-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px;padding-bottom:6px;border-bottom:0.5px solid var(--border)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.settings-row:last-child{margin-bottom:0}
+.settings-label{font-size:12px;color:var(--text);flex:1}
+.settings-hint{font-size:11px;color:var(--text3);margin-top:1px}
+.settings-input{padding:5px 8px;font-size:12px;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg2);color:var(--text);font-family:var(--font);width:160px}
+.settings-input:focus{outline:none;border-color:var(--blue)}
+.settings-select{padding:5px 24px 5px 8px;font-size:12px;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;width:120px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.settings-toggle{display:flex;gap:0;border:0.5px solid var(--border2);border-radius:6px;overflow:hidden}
+.settings-toggle button{padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;background:transparent;border:none;color:var(--text3);font-family:var(--font);transition:all .12s}
+.settings-toggle button:first-child{border-right:0.5px solid var(--border2)}
+.settings-toggle button.active{background:var(--text);color:var(--bg)}
+.effort-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
+.effort-cell{display:flex;flex-direction:column;gap:3px}
+.effort-cell-label{font-size:10px;color:var(--text3);text-align:center}
+.effort-cell input{padding:4px 6px;font-size:12px;text-align:center;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg2);color:var(--text);font-family:var(--font);width:100%}
+.settings-footer{padding:14px 20px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;background:var(--bg2)}
+.settings-save{flex:1;padding:7px 0;font-size:12px;font-weight:500;border:none;border-radius:7px;background:var(--text);color:var(--bg);cursor:pointer;font-family:var(--font)}
+.settings-reset{padding:7px 14px;font-size:12px;border:0.5px solid var(--border2);border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
+.settings-saved{font-size:11px;color:var(--teal);align-self:center;opacity:0;transition:opacity .3s}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LEFT -->
+<div class="left">
+  <div class="left-header">
+    <div class="logo">Design Template Generator</div>
+    <div class="logo-sub">Fullstack section library</div>
+  </div>
+  <div class="steps">
+    <div class="step active" id="step-nav-1" onclick="goToStep(1)">
+      <div class="step-num">1</div>
+      <div class="step-label">Service info</div>
+    </div>
+    <div class="step" id="step-nav-2" onclick="goToStep(2)">
+      <div class="step-num">2</div>
+      <div class="step-label">Tech stack</div>
+    </div>
+    <div class="step" id="step-nav-3" onclick="goToStep(3)">
+      <div class="step-num">3</div>
+      <div class="step-label">Pick scenario</div>
+    </div>
+    <div class="step" id="step-nav-4" onclick="goToStep(4)">
+      <div class="step-num">4</div>
+      <div class="step-label">Customise sections</div>
+    </div>
+    <div class="step" id="step-nav-5" onclick="goToStep(5)">
+      <div class="step-num">5</div>
+      <div class="step-label">Generate</div>
+    </div>
+  </div>
+  <div class="summary-box">
+    <div class="sb-title">Current selection</div>
+    <div class="sb-row"><span class="sb-key">Service</span><span class="sb-val" id="sum-name">—</span></div>
+    <div class="sb-row"><span class="sb-key">Scenario</span><span class="sb-val" id="sum-scenario">—</span></div>
+    <div class="sb-row"><span class="sb-key">Sections</span><span class="sb-val" id="sum-count">0</span></div>
+    <div class="sb-row"><span class="sb-key">Effort</span><span class="sb-val" id="sum-effort">—</span></div>
+    <div class="exp-toggle">
+      <button class="exp-btn" id="exp-staff" onclick="setExperience('staff')">Staff</button>
+      <button class="exp-btn active" id="exp-senior" onclick="setExperience('senior')">Senior</button>
+      <button class="exp-btn" id="exp-junior" onclick="setExperience('junior')">Junior</button>
+    </div>
+  </div>
+  <button class="settings-btn" onclick="openSettings()">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="8" cy="8" r="2.5"/>
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
+    </svg>
+    Settings
+  </button>
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+
+  <!-- STEP 1: Service info -->
+  <div class="step-content active" id="step-1">
+    <div class="step-title">Service info</div>
+    <div class="step-desc">Give the tool enough context to generate a meaningful output header.</div>
+    <div class="field">
+      <label>Service name</label>
+      <input type="text" id="svc-name" placeholder="" oninput="updateSummary()">
+    </div>
+    <div class="field">
+      <label>One-liner description</label>
+      <input type="text" id="svc-desc" placeholder="">
+      <div class="field-hint">No acronyms. Pass the "stranger in an elevator" test.</div>
+    </div>
+    <div class="field">
+      <label>Service owner</label>
+      <input type="text" id="svc-owner" placeholder="">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStep(2)">Next: tech stack →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Tech stack -->
+  <div class="step-content" id="step-2">
+    <div class="step-title">Tech stack</div>
+    <div class="step-desc">Select your technologies. These shape the generated templates — sections 05, 06, 07, 08, 09, 12, and 15 adapt based on your choices.</div>
+    <div class="field">
+      <label>Frontend</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">FE framework</span>
+          <select id="ts-fe" onchange="selectTech('fe',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="nextjs">Next.js</option>
+            <option value="angular">Angular</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Unit test</span>
+          <select id="ts-test" onchange="selectTech('test',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="vitest">Vitest</option>
+            <option value="jest">Jest</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">E2E test</span>
+          <select id="ts-e2e" onchange="selectTech('e2e',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="playwright">Playwright</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">State mgmt</span>
+          <div id="ts-state-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">
+            <button class="state-pill active" data-val="tanstack" onclick="toggleStatePill(this)">TanStack Query</button>
+            <button class="state-pill" data-val="zustand" onclick="toggleStatePill(this)">Zustand</button>
+            <button class="state-pill" data-val="redux" onclick="toggleStatePill(this)">Redux</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">UI library</span>
+          <select id="ts-ui" onchange="selectTech('ui',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="tsmc-ui">TSMC UI</option>
+            <option value="shadcn">shadcn/ui</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Backend</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Database</span>
+          <select id="ts-db" onchange="selectTech('db',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="oracle">Oracle</option>
+            <option value="mariadb">MariaDB</option>
+            <option value="mongodb">MongoDB</option>
+            <option value="clickhouse">ClickHouse</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Cache</span>
+          <select id="ts-cache" onchange="selectTech('cache',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="redis">Redis</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">MQ</span>
+          <select id="ts-queue" onchange="selectTech('queue',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="nats">NATS</option>
+            <option value="pubsub">GCP Pub/Sub</option>
+            <option value="kafka">Kafka</option>
+            <option value="bull">Bull</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Runtime</span>
+          <select id="ts-runtime" onchange="selectTech('runtime',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="nodejs">Node.js</option>
+            <option value="go">Go</option>
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">CSP</span>
+          <select id="ts-csp" onchange="selectTech('csp',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="gcp">GCP</option>
+            <option value="aws">AWS</option>
+            <option value="azure">Azure</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:88px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Object storage</span>
+          <select id="ts-objstore" onchange="selectTech('objstore',this.value)" style="padding:5px 24px 5px 8px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center">
+            <option value="minio">MinIO</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px">
+          <span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">API type</span>
+          <div id="ts-api-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">
+            <button class="state-pill active" data-cat="ts-api" data-val="rest" onclick="toggleApiPill(this)">REST</button>
+            <button class="state-pill" data-cat="ts-api" data-val="graphql" onclick="toggleApiPill(this)">GraphQL</button>
+            <button class="state-pill" data-cat="ts-api" data-val="grpc" onclick="toggleApiPill(this)">gRPC</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Other / custom</label>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+        <input id="tp-custom-input" placeholder="" style="padding:5px 9px;font-size:12px;border:0.5px solid var(--border2);border-radius:7px;background:var(--bg2);color:var(--text);font-family:var(--font);flex:1" onkeydown="if(event.key==='Enter')addCustomTech()">
+        <button onclick="addCustomTech()" style="padding:5px 10px;font-size:11px;font-weight:500;border:0.5px dashed var(--border2);border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap">+ Add</button>
+      </div>
+      <div id="tp-custom" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goToStep(3)">Next: pick scenario →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Pick scenario -->
+  <div class="step-content" id="step-3">
+    <div class="step-title">Pick your scenario</div>
+    <div class="step-desc">Choose the scenario that best matches your current situation. You can customise the section list in the next step.</div>
+    <div class="scenario-grid" id="scenario-grid"></div>
+
+    
+    <div class="divider"></div>
+    <div class="custom-block" id="custom-scenario-block">
+      <div class="custom-block-title" style="justify-content:space-between">
+        <span>Create custom scenario</span>
+        <button class="custom-toggle-btn" onclick="toggleCustomScenario()">+ Expand</button>
+      </div>
+      <div class="custom-form" id="custom-scenario-form">
+        <div class="custom-row">
+          <div><div class="cf-label">Scenario name</div><input class="cf-input" id="cs-name" placeholder="e.g. Hotfix release"></div>
+          <div><div class="cf-label">Short description</div><input class="cf-input" id="cs-desc" placeholder="e.g. Critical bug fix to production"></div>
+        </div>
+        <div>
+          <div class="cf-label">Section ratings <span style="font-weight:400;color:var(--text3)">(SR = strongly recommended · R = recommended · ○ = optional · — = skip)</span></div>
+          <div class="custom-scenario-ratings" id="csr-grid"></div>
+        </div>
+        <button class="custom-add-btn" onclick="addCustomScenario()">Add scenario</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(2)">← Back</button>
+      <button class="btn btn-primary" onclick="goToStep(4)">Next: customise →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Customise sections -->
+  <div class="step-content" id="step-4">
+    <div class="step-title">Customise sections</div>
+    <div class="step-desc">Sections pre-selected based on your scenario. Add or remove as needed. SR = strongly recommended for this scenario.</div>
+    <div class="inline-hint">
+      <span>💡</span>
+      <span>Checked sections will be included as blank templates in your generated doc. The more you include, the more you'll need to fill in — start lean and add sections as the project grows.</span>
+    </div>
+    <div class="select-all-row">
+      <button class="mini-btn" onclick="selectAll()">Select all</button>
+      <button class="mini-btn" onclick="selectNone()">Clear all</button>
+      <button class="mini-btn" onclick="selectRecommended()">SR only</button>
+      <span>Click any section to toggle</span>
+    </div>
+    <div class="section-groups" id="section-groups"></div>
+
+
+    <!-- Tech stack selector -->
+    <div class="custom-block" id="custom-section-block" style="margin-bottom:24px">
+      <div class="custom-block-title" style="justify-content:space-between;cursor:pointer" onclick="toggleCustomSection()">
+        <span>Create custom section</span>
+        <span id="custom-section-toggle" style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">+ Expand</span>
+      </div>
+      <div class="custom-form" id="custom-section-form">
+        <div class="custom-row triple">
+          <div><div class="cf-label">Section name</div><input class="cf-input" id="cn-name" placeholder="e.g. Data retention policy"></div>
+          <div><div class="cf-label">Layer</div>
+            <select class="cf-input" id="cn-layer">
+              <option value="doc-health">Doc health</option>
+              <option value="overview">Overview</option>
+              <option value="frontend">Frontend</option>
+              <option value="cross-cutting">Cross-cutting</option>
+              <option value="backend" selected>Backend</option>
+              <option value="shared">Shared</option>
+            </select>
+          </div>
+          <div><div class="cf-label">Effort</div>
+            <select class="cf-input" id="cn-effort">
+              <option value="light">Light (~30 min)</option>
+              <option value="medium" selected>Medium (~1 hr)</option>
+              <option value="heavy">Heavy (~2 hr)</option>
+            </select>
+          </div>
+        </div>
+        <div><div class="cf-label">Update trigger</div><input class="cf-input" id="cn-trigger" placeholder="e.g. Retention policy changes"></div>
+        <div><div class="cf-label">Template content <span style="font-weight:400;color:var(--text3)">(markdown)</span></div>
+          <textarea class="cf-textarea" id="cn-template" placeholder="## {section name}&#10;&#10;| Field | Value |&#10;|-------|-------|&#10;| _Example_ | _Fill in_ |"></textarea>
+        </div>
+        <button class="custom-add-btn" id="cn-submit-btn" onclick="addCustomSection()">Add section</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(3)">← Back</button>
+      <button class="btn btn-primary" onclick="goToStep(5)">Next: generate →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Generate -->
+  <div class="step-content" id="step-5">
+    <div class="step-title">Generate your design document template</div>
+    <div class="step-desc">Your customised template is ready. Copy the markdown or download each section file.</div>
+    <div class="preview-header">
+      <div style="font-size:13px;font-weight:500">Sections included</div>
+      <div class="preview-stats">
+        <span class="stat" id="prev-count">0 sections</span>
+        <span class="stat" id="prev-effort">— effort</span>
+      </div>
+    </div>
+    <div class="preview-list" id="preview-list"></div>
+    <div class="output-box">
+      <div class="ob-header">
+        <div class="ob-title" id="out-filename">design.md</div>
+        <button class="ob-copy" id="copy-md-btn" onclick="copyMarkdown()">Copy markdown</button>
+      </div>
+      <div class="ob-body" id="out-body"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(4)">← Back</button>
+      <button class="btn btn-success" onclick="downloadMarkdown()">⬇ Download .md file</button>
+      <button class="btn btn-secondary" onclick="downloadPreRead()" style="margin-left:6px">⬇ Committee pre-read</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const SCENARIOS=[
+  {id:'full-doc',name:'New project',desc:'Greenfield service — starting from scratch',short:'Greenfield service',
+   ratings:[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]},
+  {id:'fullstack',name:'Fullstack feature',desc:'FE and BE both change in an existing service',short:'FE + BE both change',
+   ratings:[2,2,2,1,2,1,1,1,1,2,2,1,2,2,1,2,1,1]},
+  {id:'fe-only',name:'FE-only feature',desc:'UI or UX work with no backend changes',short:'UI / UX only',
+   ratings:[1,1,2,0,2,2,1,0,1,1,0,0,-1,-1,0,1,0,0]},
+  {id:'be-api',name:'BE / API change',desc:'API or data layer changes only',short:'API or data change',
+   ratings:[2,1,2,1,0,0,1,1,2,1,2,1,2,2,1,2,1,0]},
+  {id:'migration',name:'Data model migration',desc:'Database schema or data model changes',short:'Data model changes',
+   ratings:[2,2,2,0,0,0,0,1,1,2,2,1,2,1,1,2,1,0]},
+  {id:'revamp',name:'Tech revamp',desc:'Rewriting or rearchitecting the service',short:'Rewrite / rearchitect',
+   ratings:[2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1]},
+  {id:'security',name:'Security',desc:'Penetration test or security review',short:'Security',
+   ratings:[1,2,2,2,1,1,2,2,1,1,1,1,1,2,1,2,1,0]},
+  {id:'compliance',name:'Compliance',desc:'GDPR, PCI DSS, or SOC2 audit',short:'Compliance',
+   ratings:[1,2,2,2,1,1,1,2,2,1,1,1,2,2,1,1,1,1]},
+  {id:'committee-review',name:'Committee review',desc:'Pre-coding design review by architecture committee',short:'Committee review',
+   ratings:[-1, -1, 2, 2, -1, -1, 2, 1, -1, -1, 1, 2, 1, 2, -1, -1, 2, -1]}
+];
+
+const SECTIONS=[
+  {n:'01',name:'Version history',layer:'doc-health',ll:'Doc health',effort:'light',trigger:'Migration · launch · policy change',file:'01-version-history.md',hint:'Log every schema migration, breaking change, and major launch. One row per change.'},
+  {n:'02',name:'Review history',layer:'doc-health',ll:'Doc health',effort:'light',trigger:'Same as 01',file:'02-review-history.md',hint:'Reviewer must not be the last editor. Status: Approved / Needs update / Approved after fixes.'},
+  {n:'03',name:'Project snapshot',layer:'overview',ll:'Overview',effort:'medium',trigger:'Mandate change · stack change',file:'03-project-snapshot.md',hint:'One-liner: no acronyms, stranger-in-lift test. Non-goals must name the owning team.'},
+  {n:'04',name:'System context',layer:'overview',ll:'Overview',effort:'light',trigger:'New integration added/removed',file:'04-system-context.md',hint:'Downstream impact: be specific enough to act on at 2am. Every row needs a failure mode in section 12.'},
+  {n:'05',name:'FE architecture',layer:'frontend',ll:'Frontend',effort:'medium',trigger:'New route · new shared component',file:'05-fe-architecture.md',hint:'List every protected route. Critical components = non-obvious design decisions only.'},
+  {n:'06',name:'State & data flow',layer:'frontend',ll:'Frontend',effort:'medium',trigger:'New state layer · fetching pattern changes',file:'06-state-and-data-flow.md',hint:'Show the full data path: component → hook → API → backend. No raw fetch in components.'},
+  {n:'07',name:'AuthN & AuthZ',layer:'cross-cutting',ll:'Cross-cutting',effort:'medium',trigger:'Token strategy change · new role',file:'07-authn-and-authz.md',hint:'Access token in memory only. Document who assigns each role, not just what it can do.'},
+  {n:'08',name:'Security',layer:'cross-cutting',ll:'Cross-cutting',effort:'heavy',trigger:'New dependency · pen test cycle',file:'08-security.md',hint:'Every secret needs a rotation schedule. Every PII field listed individually — not just "we encrypt PII".'},
+  {n:'09',name:'Error handling',layer:'cross-cutting',ll:'Cross-cutting',effort:'medium',trigger:'New error code · alert threshold change',file:'09-error-handling.md',hint:'One row per distinct FE behaviour. Response tiers must be agreed by the whole team.'},
+  {n:'10',name:'Data validation map',layer:'cross-cutting',ll:'Cross-cutting',effort:'light',trigger:'New field · schema migration · validation bug',file:'10-data-validation-map.md',hint:'Use — for absent validation, never blank. DB-only constraints produce 500s, not user messages.'},
+  {n:'11',name:'Business rules',layer:'cross-cutting',ll:'Cross-cutting',effort:'medium',trigger:'New domain constraint · bug reveals undocumented rule',file:'11-business-rules.md',hint:'Diagrams over prose. Every rule needs a rationale — rules without a why get deleted in 6 months.'},
+  {n:'12',name:'Reliability & availability',layer:'cross-cutting',ll:'Cross-cutting',effort:'heavy',trigger:'SLO change · new dependency · game day',file:'12-reliability-and-availability.md',hint:'SLOs agreed by the team. Every dependency in section 04 needs a failure mode row here.'},
+  {n:'13',name:'Data model',layer:'backend',ll:'Backend',effort:'heavy',trigger:'Schema migration · new entity',file:'13-data-model.md',hint:'Every index documents the query it serves. ERD should be auto-generated from migrations.'},
+  {n:'14',name:'API surface',layer:'backend',ll:'Backend',effort:'medium',trigger:'New endpoint · auth change · breaking change',file:'14-api-surface.md',hint:'Write the breaking change definition before the first breaking change — not during it.'},
+  {n:'15',name:'Background jobs & caching',layer:'backend',ll:'Backend',effort:'medium',trigger:'New job · cache strategy change',file:'15-background-jobs-and-caching.md',hint:'Every job needs a max duration and an idempotency guarantee. Document what must never be cached.'},
+  {n:'16',name:'Testing strategy',layer:'backend',ll:'Backend',effort:'medium',trigger:'New critical case · CI gate change',file:'16-testing-strategy.md',hint:'List cases, not tools. Every critical case must block the PR — advisory-only is not a gate.'},
+  {n:'17',name:'Trade-off',layer:'shared',ll:'Shared',effort:'light',trigger:'Architectural decision made or revisited',file:'17-trade-off.md',hint:'Every entry must name what was given up. An empty "Gave up" column means the entry is incomplete.'},
+  {n:'18',name:'Terminology',layer:'shared',ll:'Shared',effort:'light',trigger:'Ambiguous term identified',file:'18-terminology.md',hint:'Only terms that cause real confusion. Each definition must distinguish from its nearest neighbour.'},
+];
+
+const LAYER_TAG={
+  'doc-health':'tag-dh','overview':'tag-ov','frontend':'tag-fe',
+  'cross-cutting':'tag-cx','backend':'tag-be','shared':'tag-sh'
+};
+const EFFORT_TAG={'light':'tag-light','medium':'tag-medium','heavy':'tag-heavy'};
+const EFFORT_LABEL={'light':'Light','medium':'Medium','heavy':'Heavy'};
+let experienceLevel = 'senior';
+let EFFORT_HRS_STAFF  = {'light':0.3,'medium':0.6,'heavy':1.2};
+let EFFORT_HRS_SENIOR = {'light':0.5,'medium':1,'heavy':2};
+let EFFORT_HRS_JUNIOR = {'light':1,  'medium':2,'heavy':4};
+function getEffortHrs(){
+  if(experienceLevel==='staff')  return EFFORT_HRS_STAFF;
+  if(experienceLevel==='junior') return EFFORT_HRS_JUNIOR;
+  return EFFORT_HRS_SENIOR;
+}
+
+function setExperience(level){
+  experienceLevel = level;
+  document.getElementById('exp-staff').classList.toggle('active',  level==='staff');
+  document.getElementById('exp-senior').classList.toggle('active', level==='senior');
+  document.getElementById('exp-junior').classList.toggle('active', level==='junior');
+  updateSummary();
+  // Re-render preview if on step 5
+  if(currentStep===5) renderPreview();
+}
+
+const SC_COLORS=[
+  {bg:'#E1F5EE',color:'#085041',border:'#5DCAA5'},
+  {bg:'#FAEEDA',color:'#854F0B',border:'#EF9F27'},
+  {bg:'#FAECE7',color:'#712B13',border:'#F0997B'},
+  {bg:'#E6F1FB',color:'#0C447C',border:'#85B7EB'},
+  {bg:'#EEEDFE',color:'#3C3489',border:'#AFA9EC'},
+  {bg:'#EAF3DE',color:'#27500A',border:'#97C459'},
+];
+
+let currentStep=1;
+let selectedScenario=null;
+let checked=new Set(['01']);
+let scenarioRatings=[];
+
+function goToStep(n){
+  if(n>currentStep && !document.getElementById('svc-name').value.trim()){
+    document.getElementById('svc-name').focus();return;
+  }
+  currentStep=n;
+  document.querySelectorAll('.step-content').forEach(el=>el.classList.remove('active'));
+  const target=document.getElementById('step-'+n);
+  if(target) target.classList.add('active');
+  document.querySelectorAll('.step').forEach((el,i)=>{
+    el.classList.toggle('active',i+1===n);
+    el.classList.toggle('done',i+1<n);
+  });
+  if(n===3) renderScenarioGrid();
+  if(n===4) renderSections();
+  if(n===5) renderPreview();
+  updateSummary();
+}
+
+function updateSummary(){
+  const name=document.getElementById('svc-name').value||'—';
+  document.getElementById('sum-name').textContent=name.length>18?name.slice(0,16)+'…':name;
+  document.getElementById('sum-scenario').textContent=selectedScenario?SCENARIOS.find(s=>s.id===selectedScenario)?.name||'—':'—';
+  document.getElementById('sum-count').textContent=checked.size;
+  const hrs=[...checked].reduce((a,n)=>{const s=SECTIONS.find(x=>x.n===n);return s?a+(getEffortHrs()[s.effort]||0):a;},0);
+  document.getElementById('sum-effort').textContent=hrs<8?'~'+Math.round(hrs*2)/2+'hr':Math.round(hrs/8)+'–'+Math.round(hrs/8*1.3)+'d';
+}
+
+// Render scenarios
+function renderScenarioGrid(){
+  const grid=document.getElementById('scenario-grid');
+  if(!grid)return;
+  grid.innerHTML=SCENARIOS.map((s,i)=>{
+    const c=SC_COLORS[i%SC_COLORS.length];
+    const sr=s.ratings.slice(0,18).filter(r=>r===2).length;
+    return`<div class="sc-card" id="sc-${s.id}" onclick="selectScenario('${s.id}')">
+      <div class="sc-name">${s.name}</div>
+      <div class="sc-desc">${s.desc}</div>
+      <span class="sc-count" style="background:${c.bg};color:${c.color};border:0.5px solid ${c.border}">${sr} SR sections</span>
+    </div>`;
+  }).join('');
+}
+renderScenarioGrid();
+
+function selectScenario(id){
+  selectedScenario=id;
+  document.querySelectorAll('.sc-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('sc-'+id).classList.add('selected');
+  const sc=SCENARIOS.find(s=>s.id===id);
+  scenarioRatings=sc.ratings;
+  const ratedSections=SECTIONS.filter(s=>{const n=parseInt(s.n);return Number.isFinite(n)&&n>=1;});
+  checked=new Set(ratedSections.filter((_,i)=>sc.ratings[i]>=1).map(s=>s.n));
+  updateSummary();
+}
+
+function renderSections(){
+  const groups=[
+    {label:'Doc health',layer:'doc-health'},
+    {label:'Overview',layer:'overview'},
+    {label:'Frontend',layer:'frontend'},
+    {label:'Cross-cutting',layer:'cross-cutting'},
+    {label:'Backend',layer:'backend'},
+    {label:'Shared',layer:'shared'},
+  ];
+  const container=document.getElementById('section-groups');
+  container.innerHTML=groups.map(g=>{
+    const items=SECTIONS.filter(s=>s.layer===g.layer);
+    return`<div class="sec-group">
+      <div class="sec-group-label">${g.label}</div>
+      <div class="sec-items">
+        ${items.map(s=>{
+          const num=parseInt(s.n);
+          const idx=(Number.isFinite(num)&&num>=1)?num-1:-1;
+          const rating=(idx>=0&&scenarioRatings[idx])||0;
+          const isSR=rating===2;
+          const isChecked=checked.has(s.n);
+          return`<div class="sec-item${isChecked?' checked':''}${isSR&&!isChecked?' sr-highlight':''}" id="si-${s.n}" onclick="toggleSection('${s.n}')">
+            <input type="checkbox" class="sec-cb" ${isChecked?'checked':''} onclick="event.stopPropagation();toggleSection('${s.n}')">
+            <div class="sec-info">
+              <div class="sec-name" style="display:flex;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:4px">${s.n}</span>${s.name}<button class="guide-btn" onclick="event.stopPropagation();openGuide('${s.n}')">Guide ↗</button></div>
+              <div class="sec-meta">
+                <span class="tag ${EFFORT_TAG[s.effort]}">${EFFORT_LABEL[s.effort]}</span>
+                <span style="font-size:11px;color:var(--text3)">${s.trigger}</span>
+                ${isSR?`<span class="sec-sr-badge">SR</span>`:''}
+              </div>
+              ${s.hint?`<div class="sec-hint">${s.hint}</div>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSection(n){
+  if(checked.has(n))checked.delete(n);
+  else checked.add(n);
+  const item=document.getElementById('si-'+n);
+  const cb=item.querySelector('.sec-cb');
+  const num2=parseInt(n);
+  const idx=(Number.isFinite(num2)&&num2>=1)?num2-1:-1;
+  const isSR=idx>=0&&scenarioRatings[idx]===2;
+  item.classList.toggle('checked',checked.has(n));
+  item.classList.toggle('sr-highlight',isSR&&!checked.has(n));
+  cb.checked=checked.has(n);
+  updateSummary();
+}
+
+function selectAll(){checked=new Set(SECTIONS.map(s=>s.n));renderSections();updateSummary();}
+function selectNone(){checked=new Set();renderSections();updateSummary();}
+function selectRecommended(){
+  const rated=SECTIONS.filter(s=>{const n=parseInt(s.n);return Number.isFinite(n)&&n>=1;});
+  checked=new Set(rated.filter((_,i)=>scenarioRatings[i]===2).map(s=>s.n));
+  renderSections();updateSummary();
+}
+
+function renderPreview(){
+  const selected=SECTIONS.filter(s=>checked.has(s.n));
+  document.getElementById('prev-count').textContent=`${selected.length} section${selected.length!==1?'s':''}`;
+  const hrs=selected.reduce((a,s)=>a+getEffortHrs()[s.effort],0);
+  const effortStr=hrs<8?`~${Math.round(hrs*10)/10}hr to fill`:`~${Math.round(hrs/8)}–${Math.round(hrs/8*1.3)}d to fill`;
+  document.getElementById('prev-effort').textContent=effortStr;
+
+  const name=document.getElementById('svc-name').value||'service-name';
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  document.getElementById('out-filename').textContent=`${slug}-design.md`;
+
+  document.getElementById('preview-list').innerHTML=selected.map(s=>`
+    <div class="pl-item">
+      <div class="pl-num">${s.n}</div>
+      <div class="pl-name">${s.name}</div>
+      <div class="pl-trigger">${s.trigger}</div>
+      <div class="pl-file">${s.file}</div>
+    </div>`).join('');
+
+  document.getElementById('out-body').innerHTML=renderOutput(generateMarkdown());
+}
+
+
+let feFramework = 'nextjs'; // default
+
+function setFramework(fw){
+  feFramework = fw;
+  ['nextjs','angular','none'].forEach(id=>{
+    const btn = document.getElementById('fw-'+id);
+    if(btn) btn.classList.toggle('active', id===fw);
+  });
+}
+
+const FE_TEMPLATES = {
+  '05': {
+    nextjs: `## FE architecture
+
+### Route map
+
+| Route | Page / component | Auth guard | Layout |
+|-------|-----------------|------------|--------|
+| \`/\` | Home | Public | \`Main\` |
+| \`/dashboard\` | _Main view_ | Auth required → redirect \`/login?next=/dashboard\` | \`App\` |
+| \`/login\` | Auth form | Public — redirect to \`/dashboard\` if already logged in | \`Auth\` |
+| \`/admin\` | _Admin view_ | Admin role | \`Admin\` |
+
+**Redirect behaviour:**
+- Unauthenticated → protected route: \`/login?next={original_path}\`
+- Authenticated → \`/login\`: \`/dashboard\`
+
+### Component tree
+
+\`\`\`mermaid
+graph TD
+  App[App layout]
+  App --> AuthGuard[AuthGuard\nHOC — redirects to /login]
+  App --> AdminGuard[AdminGuard\nHOC — 403 if not admin]
+  AuthGuard --> MainView[_Main view_]
+  AdminGuard --> AdminView[_Admin view_]
+  MainView --> MainCard[_MainCard_\nShared component]
+\`\`\`
+
+> _Replace nodes with your actual component hierarchy. Shared = used in 2+ places._
+
+### Critical components _(include: shared components with non-obvious design)_
+
+| Component | Props contract | State owned | Key design decision |
+|-----------|---------------|-------------|---------------------|
+| \`<_CriticalComponent_>\` | _Key props and their types_ | _What local state this component owns_ | _The non-obvious decision — e.g. cursor vs offset pagination, controlled vs uncontrolled, why state is local vs lifted._ |
+| \`<_SharedComponent_>\` | _Key props_ | _What state this component owns_ | _e.g. never stores sensitive data — that lives in X. Or: renders with virtualisation because dataset is large._ |
+
+> Only document components where the design decision is non-obvious. If anyone could implement it correctly without reading this, skip it.
+
+
+
+### Feature flags
+
+| Flag key | Layer | Status | What it gates | Owner | Remove by |
+|----------|-------|--------|---------------|-------|-----------|
+| \`feature_v2\` | \`FE+BE\` | \`Off\` | _What this gates_ | \${ctx.owner} | YYYY-MM-DD |
+
+### Performance budgets
+
+| Metric | Target | Current | CI gate? |
+|--------|--------|---------|----------|
+| LCP | < 2.5s | _N/A_ | Lighthouse CI — warning |
+| JS bundle — main | < 200 KB gzipped | _N/A_ | Hard block on PR |`,
+
+    angular: `## FE architecture
+
+### Route map
+
+| Route | Module / component | Auth guard | Notes |
+|-------|--------------------|------------|-------|
+| \`/\` | \`HomeComponent\` | Public | |
+| \`/dashboard\` | \`DashboardComponent\` | \`AuthGuard\` → redirect \`/login\` | |
+| \`/login\` | \`LoginComponent\` | Public — redirect to \`/dashboard\` if authenticated | |
+| \`/admin\` | \`AdminModule\` (lazy) | \`RoleGuard\` (admin) | Lazy-loaded — admin only |
+
+**Auth guard pattern:**
+- \`AuthGuard\` implements \`CanActivate\` — redirects to \`/login\` with \`returnUrl\` param if unauthenticated.
+- \`RoleGuard\` implements \`CanActivate\` — checks \`user.role\`. Returns 403 component if not authorised.
+
+### Component tree
+
+\`\`\`mermaid
+graph TD
+  Router[Angular Router]
+  Router --> AuthGuard[AuthGuard\nCanActivate]
+  Router --> RoleGuard[RoleGuard\nCanActivate]
+  AuthGuard --> ProtectedComponent[_Protected components_]
+  RoleGuard --> AdminComponent[_Admin components_]
+  ProtectedComponent --> AuthService[AuthService\nToken storage / role check]
+  ProtectedComponent --> FeatureService[_FeatureService_\nDomain data + HTTP]
+  FeatureService --> HttpClient[HttpClient]
+  FeatureService --> NgRxStore[NgRx store\noptional]
+\`\`\`
+
+> _Replace service names with your actual services. Components never call HttpClient directly._
+
+### Critical components _(include: components or directives with non-obvious design)_
+
+| Component / directive | Inputs / outputs | State owned | Key design decision |
+|----------------------|-----------------|-------------|---------------------|
+| \`_CriticalComponent_\` | _Key @Input() / @Output()_ | _What local state this component owns_ | _The non-obvious decision — e.g. cursor vs offset pagination, OnPush vs Default, why this is a component vs directive._ |
+| \`_SharedComponent_\` | _Key @Input() / @Output()_ | _What state this component owns_ | _e.g. never stores sensitive data — that lives in the service. Or: OnPush because dataset is large and never mutated directly._ |
+
+> Only document components where the design decision is non-obvious. If anyone could implement it correctly without reading this, skip it.
+
+
+
+### Feature flags
+
+| Flag key | Layer | Status | What it gates | Owner | Remove by |
+|----------|-------|--------|---------------|-------|-----------|
+| \`feature_v2\` | \`FE+BE\` | \`Off\` | _What this gates_ | \${ctx.owner} | YYYY-MM-DD |
+
+### Performance budgets
+
+| Metric | Target | Current | CI gate? |
+|--------|--------|---------|----------|
+| LCP | < 2.5s | _N/A_ | Lighthouse CI — warning |
+| JS bundle — main | < 350 KB gzipped | _N/A_ | Hard block on PR |
+| Lazy chunk — admin | < 200 KB gzipped | _N/A_ | Hard block on PR |`,
+
+    none: `## FE architecture
+
+### Route map
+
+| Route | Page / handler | Auth guard | Notes |
+|-------|----------------|------------|-------|
+| \`/\` | Home | Public | |
+| \`/dashboard\` | _Main view_ | Auth required | |
+| \`/login\` | Auth form | Public | |
+| \`/admin\` | _Admin view_ | Admin role | |
+
+### Feature flags
+
+| Flag key | Layer | Status | What it gates | Owner | Remove by |
+|----------|-------|--------|---------------|-------|-----------|
+| \`feature_v2\` | \`FE+BE\` | \`Off\` | _What this gates_ | \${ctx.owner} | YYYY-MM-DD |
+
+### Performance budgets
+
+| Metric | Target | Current | CI gate? |
+|--------|--------|---------|----------|
+| LCP | < 2.5s | _N/A_ | Lighthouse CI — warning |
+| JS bundle — main | < _N_ KB gzipped | _N/A_ | Hard block on PR |`,
+  },
+
+  '06': {
+    nextjs: `## State & data flow
+
+### State management
+
+| State type | Tool | Rules |
+|------------|------|-------|
+| Local | \`useState\` / \`useReducer\` | Form inputs, modal open/close. Never hoist unless a sibling needs it. |
+| Server | TanStack Query | All API data. Cache key: \`['resource', id]\`. Stale time: _N_ s. |
+| Global | Zustand | _What lives here. One slice per domain. Never put server data here._ |
+
+### Data flow
+
+\`\`\`mermaid
+graph LR
+  Component -->|calls hook| QueryHook[Query hook\\nsrc/hooks/]
+  QueryHook -->|TanStack Query| APIClient[API client\\nsrc/api/]
+  APIClient -->|HTTP| Backend[Backend API]
+  Backend -->|response| APIClient
+  APIClient -->|cached result| QueryHook
+  QueryHook -->|data / loading / error| Component
+  Component -->|mutation| MutationHook[Mutation hook]
+  MutationHook -->|POST / PUT / DELETE| APIClient
+  MutationHook -->|invalidate query keys| QueryHook
+\`\`\`
+
+> Components never call \`fetch\` or \`axios\` directly — always through query/mutation hooks in \`src/hooks/\`.
+
+**Rules**
+
+| Concern | Approach |
+|---------|----------|
+| Cache invalidation | Mutations invalidate related query keys immediately on success. e.g. cancelling an order invalidates \`['orders', userId]\` and \`['order', orderId]\`. |
+| Stale data | Lists: _N_ s stale time. Detail pages: _N_ s. Financial data: \`staleTime: Infinity\` — never auto-refetched. |
+| Request deduplication | TanStack Query deduplicates identical in-flight requests automatically. Multiple components mounting with the same query key share one network request. |
+| Error handling | \`useQuery\` returns \`{ error, isError }\`. Pass \`error\` to the error boundary or render inline. Never \`throw\` inside a query function — return the error. |
+| Loading states | \`isLoading\` = no cached data + fetching. \`isFetching\` = any background fetch (including re-fetches). Show skeleton on \`isLoading\`, spinner on \`isFetching\` only where needed. |
+| Real-time updates | _Not implemented — polling on page focus every N s. / Supported via WebSocket._ |`,
+
+    angular: `## State & data flow
+
+### State management
+
+| State type | Tool | Rules |
+|------------|------|-------|
+| Local | Component properties / \`signal()\` | Form state, toggle state, accordion. Never expose beyond the component. |
+| Server | _Service + \`HttpClient\` + RxJS_ | All API calls live in services. Components subscribe via \`async\` pipe or \`toSignal()\`. No raw \`HttpClient\` calls in components. |
+| Global | _NgRx store / \`BehaviorSubject\`_ | Auth user, shared selection, locale. Only for state that survives navigation. |
+
+### Data flow
+
+\`\`\`mermaid
+graph LR
+  Component -->|injects| Service[Angular service]
+  Service -->|HttpClient| Backend[Backend API]
+  Backend -->|Observable response| Service
+  Service -->|Observable / signal| Component
+  Component -->|async pipe / toSignal| Template[Template]
+  Service -->|catchError| ErrorState[Typed error state]
+  ErrorState --> Component
+\`\`\`
+
+> Components never call \`HttpClient\` directly. All HTTP lives in services. Components subscribe via \`async\` pipe or \`toSignal()\`.
+
+**Rules**
+
+| Concern | Approach |
+|---------|----------|
+| Cache invalidation | Re-fetch via service method on mutation. NgRx: dispatch reload action from effect after successful mutation. |
+| Stale data | No built-in cache. Use \`ReplaySubject(1)\` or NgRx selector memoisation for expensive queries. |
+| Error handling | \`catchError\` in service pipeline. Component receives typed error state. See 09 for FE error patterns. |
+| Real-time updates | _Not implemented — polling via \`interval()\` + \`switchMap\`. / Supported via WebSocket with \`webSocket()\`._ |`,
+
+    none: `## State & data flow
+
+### State management
+
+| State type | Tool | Rules |
+|------------|------|-------|
+| Local | _Tool_ | Form inputs, modal state. Never share unless a sibling needs it. |
+| Server | _Tool_ | All API data. Describe cache key convention. |
+| Global | _Tool_ | Auth user, shared state. One store slice per domain. |
+
+### Data flow
+
+| Concern | Approach |
+|---------|----------|
+| Fetching | _Where API calls live. Rule: not directly in view layer._ |
+| Cache invalidation | _How stale data is cleared after mutations._ |
+| Real-time updates | _Supported / not implemented. If not: what does the user see?_ |`,
+  },
+};
+
+
+
+// ── Custom technology tags ────────────────────────────────────────────────────
+let customTechs = [];
+
+function addCustomTech(){
+  const input = document.getElementById('tp-custom-input');
+  const val = input.value.trim();
+  if(!val || customTechs.includes(val)) { input.value=''; return; }
+  customTechs.push(val);
+  input.value = '';
+  renderCustomTechs();
+  renderPreview();
+}
+
+function removeCustomTech(val){
+  customTechs = customTechs.filter(t=>t!==val);
+  renderCustomTechs();
+  renderPreview();
+}
+
+function renderCustomTechs(){
+  const el = document.getElementById('tp-custom');
+  el.innerHTML = customTechs.map(t=>
+    `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;border:0.5px solid var(--border2);border-radius:20px;background:var(--bg2);color:var(--text2)">
+      ${t}<button onclick="removeCustomTech('${t.replace(/'/g,"\'")}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:0">✕</button>
+    </span>`
+  ).join('');
+}
+
+
+// ── Tech stack selector ───────────────────────────────────────────────────────
+let techStack = {
+  db:    'oracle',
+  cache: 'redis',
+  queue: 'nats',
+  cloud: 'gcp',
+  runtime: 'nodejs',
+  csp: 'gcp',
+  objstore: 'none',
+  api: new Set(['rest']),
+  fe:    'nextjs',
+  test:  'vitest',
+  e2e:   'playwright',
+  state: new Set(['tanstack']),
+  ui: 'tsmc-ui',
+};
+
+const TECH_LABELS = {
+  db:    {oracle:'Oracle',mariadb:'MariaDB',mongodb:'MongoDB',clickhouse:'ClickHouse',none:'No DB'},
+  cache: {redis:'Redis',none:'No cache'},
+  queue: {nats:'NATS',pubsub:'GCP Pub/Sub',kafka:'Kafka',bull:'Bull',none:'No MQ'},
+  cloud: {gcp:'GCP',none:'No CSP'},
+  fe:    {nextjs:'Next.js',angular:'Angular',none:'None / Other'},
+  test:  {jest:'Jest',vitest:'Vitest',none:'None'},
+  e2e:   {playwright:'Playwright',none:'None'},
+  state: {tanstack:'TanStack Query',zustand:'Zustand',redux:'Redux',none:'None'},
+  ui:      {'tsmc-ui':'TSMC UI',shadcn:'shadcn/ui',none:'None'},
+  runtime: {nodejs:'Node.js',go:'Go',java:'Java',python:'Python',none:'None'},
+  csp:     {gcp:'GCP',aws:'AWS',azure:'Azure',none:'None'},
+  objstore:{minio:'MinIO',none:'None'},
+  api:     {rest:'REST',graphql:'GraphQL',grpc:'gRPC'},
+};
+
+const TECH_SUBSTITUTIONS = {
+  secret_manager: {
+    gcp:'GCP Secret Manager', none:'Environment variables',
+  },
+  db_failover: {
+    oracle:'Oracle Data Guard auto-failover', mariadb:'HA auto-failover (Galera / MHA)', mongodb:'Atlas auto-failover',
+    none:'HA auto-failover',
+  },
+  db_backup: {
+    oracle:'RMAN backup · point-in-time recovery', mariadb:'Daily snapshot · binary log point-in-time recovery',
+    mongodb:'Atlas continuous backup · point-in-time recovery', other:'Daily snapshot · point-in-time recovery',
+  },
+  queue_tool: {
+    nats:'NATS', pubsub:'GCP Pub/Sub', none:'—',
+  },
+  queue_dlq: {
+    nats:'NATS JetStream dead letter stream',
+    pubsub:'Dead letter topic', none:'—',
+  },
+  cache_tool: {
+    redis:'Redis', none:'—',
+  },
+  auth_issuer: {
+    internal:'Internal auth service issues all JWTs. This service validates only.',
+    auth0:'Auth0 issues all JWTs. Public key fetched from Auth0 JWKS endpoint.',
+    cognito:'AWS Cognito issues all JWTs. Public key fetched from Cognito JWKS endpoint.',
+    firebase:'Firebase Auth issues all JWTs. Public key fetched from Firebase JWKS endpoint.',
+  },
+  run_platform: {
+    gcp:'GCP Cloud Run', none:'hosting platform',
+  },
+};
+
+function toggleApiPill(btn){
+  const val = btn.getAttribute('data-val');
+  if(techStack.api.has(val)) techStack.api.delete(val);
+  else techStack.api.add(val);
+  document.querySelectorAll('#ts-api-pills .state-pill').forEach(b=>{
+    b.classList.toggle('active', techStack.api.has(b.getAttribute('data-val')));
+  });
+  updateTechSummary();
+  renderPreview();
+}
+
+function toggleStatePill(btn){
+  const val = btn.getAttribute('data-val');
+  if(techStack.state.has(val)){
+    techStack.state.delete(val);
+  } else {
+    techStack.state.add(val);
+  }
+  document.querySelectorAll('#ts-state-pills .state-pill').forEach(b=>{
+    b.classList.toggle('active', techStack.state.has(b.getAttribute('data-val')));
+  });
+  updateTechSummary();
+  renderPreview();
+}
+
+function selectTech(category, value){
+  techStack[category] = value;
+  if(category==='fe') setFramework(value);
+  updateTechSummary();
+  renderPreview();
+}
+
+function updateTechSummary(){
+  const parts = [
+    TECH_LABELS.db[techStack.db],
+    TECH_LABELS.cache[techStack.cache] !== 'No cache' ? TECH_LABELS.cache[techStack.cache] : null,
+    TECH_LABELS.queue[techStack.queue] !== 'No MQ' ? TECH_LABELS.queue[techStack.queue] : null,
+    TECH_LABELS.cloud[techStack.cloud] !== 'No CSP' ? TECH_LABELS.cloud[techStack.cloud] : null,
+    TECH_LABELS.fe[techStack.fe] !== 'None / Other' ? TECH_LABELS.fe[techStack.fe] : null,
+    techStack.test !== 'none' ? TECH_LABELS.test[techStack.test] : null,
+    techStack.e2e !== 'none' ? TECH_LABELS.e2e[techStack.e2e] : null,
+    ...[...techStack.state].map(v=>TECH_LABELS.state[v]||v),
+    techStack.ui !== 'none' ? TECH_LABELS.ui[techStack.ui] : null,
+    techStack.runtime !== 'none' ? TECH_LABELS.runtime[techStack.runtime] : null,
+    techStack.csp !== 'none' ? TECH_LABELS.csp[techStack.csp] : null,
+    techStack.objstore !== 'none' ? TECH_LABELS.objstore[techStack.objstore] : null,
+    ...[...techStack.api].map(v=>TECH_LABELS.api[v]||v),
+  ].filter(Boolean);
+}
+
+
+function resolveTech(md){
+  const s = techStack;
+  return md
+    .replace(/GCP Secret Manager/g,         TECH_SUBSTITUTIONS.secret_manager[s.cloud]  || 'Secret Manager')
+    .replace(/Cloud SQL HA auto-failover/g,  TECH_SUBSTITUTIONS.db_failover[s.db]        || 'DB auto-failover')
+    .replace(/daily snapshot · point-in-time recovery/gi, TECH_SUBSTITUTIONS.db_backup[s.db] || 'DB backup')
+    .replace(/Bull v4 \(Redis-backed\)/g,  TECH_SUBSTITUTIONS.queue_tool[s.queue]      || 'Queue tool')
+    .replace(/Bull \(Redis-backed\)/g,     TECH_SUBSTITUTIONS.queue_tool[s.queue]      || 'Queue tool')
+    .replace(/Bull/g,                        TECH_SUBSTITUTIONS.queue_tool[s.queue] !== '—' ? TECH_SUBSTITUTIONS.queue_tool[s.queue] : 'Queue')
+    .replace(/DLQ via Bull dead-letter queue|Bull DLQ/g, TECH_SUBSTITUTIONS.queue_dlq[s.queue] || 'DLQ')
+    .replace(/Redis(?!\s*·|-backed|-backed)/g, s.cache !== 'none' ? TECH_SUBSTITUTIONS.cache_tool[s.cache] : 'cache')
+    .replace(/GCP Cloud Run/g,               TECH_SUBSTITUTIONS.run_platform[s.cloud]   || 'hosting platform')
+    .replace(/Auth service issues all JWTs\. OMS validates only\. Public key fetched from JWKS endpoint/g,
+             TECH_SUBSTITUTIONS.auth_issuer[s.auth])
+    .replace(/Auth service issues all JWTs\. This service validates only\. Public key cached/g,
+             TECH_SUBSTITUTIONS.auth_issuer[s.auth] + '. Public key cached');
+}
+
+
+function buildTechStackLines(){
+  const lines = [];
+  if(techStack.fe !== 'none') lines.push('- Frontend: ' + TECH_LABELS.fe[techStack.fe]);
+  lines.push('- Database: ' + TECH_LABELS.db[techStack.db]);
+  if(techStack.cache !== 'none') lines.push('- Cache: ' + TECH_LABELS.cache[techStack.cache]);
+  if(techStack.queue !== 'none') lines.push('- Queue: ' + TECH_LABELS.queue[techStack.queue]);
+  if(techStack.test !== 'none') lines.push('- Testing: ' + TECH_LABELS.test[techStack.test]);
+  if(techStack.e2e !== 'none') lines.push('- E2E: ' + TECH_LABELS.e2e[techStack.e2e]);
+  if(techStack.state.size>0) lines.push('- State: ' + [...techStack.state].map(v=>TECH_LABELS.state[v]||v).join(', '));
+  if(techStack.ui !== 'none') lines.push('- UI: ' + TECH_LABELS.ui[techStack.ui]);
+  if(techStack.runtime !== 'none') lines.push('- Runtime: ' + TECH_LABELS.runtime[techStack.runtime]);
+  if(techStack.csp !== 'none') lines.push('- CSP: ' + TECH_LABELS.csp[techStack.csp]);
+  if(techStack.objstore !== 'none') lines.push('- Object storage: ' + TECH_LABELS.objstore[techStack.objstore]);
+  if(techStack.api.size>0) lines.push('- API: ' + [...techStack.api].map(v=>TECH_LABELS.api[v]||v).join(' + '));
+  customTechs.forEach(t => lines.push('- ' + t));
+  return lines.join('\n');
+}
+
+function renderOutput(md){
+  return escHtml(md);
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+function copyMarkdown(){
+  const md=generateMarkdown();
+  navigator.clipboard.writeText(md).then(()=>{
+    const btn=document.getElementById('copy-md-btn');
+    btn.textContent='Copied!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copy markdown';btn.classList.remove('copied');},2000);
+  });
+}
+
+function downloadMarkdown(){
+  const raw=generateMarkdown();
+  const md=raw;
+  const name=document.getElementById('svc-name').value||'service';
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const blob=new Blob([md],{type:'text/markdown'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${slug}-design.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
+function generatePreRead(){
+  const name  = document.getElementById('svc-name').value  || 'Service name';
+  const desc  = document.getElementById('svc-desc').value  || '';
+  const owner = document.getElementById('svc-owner').value || CFG.owner || '_Team · @handle_';
+  const today = new Date().toISOString().slice(0,10);
+  const repoPrefix  = CFG.repoPrefix  || 'github.com/org/';
+  const runbookBase = CFG.runbookBase || '';
+  const separator   = '\n\n---\n\n';
+  const ctx = {name,desc,owner,today,repoPrefix,runbookBase,techStackLines:buildTechStackLines()};
+
+  // Committee pre-read: SR sections only from current selection
+  const srNums  = ['03','04','07','08','09','11','12','13','14','17'];
+  const selected = SECTIONS.filter(s=>checked.has(s.n)&&srNums.includes(s.n));
+
+  let md = `# ${name} — committee pre-read\n\n`;
+  md += `> Generated: ${today}  ·  Sections included: ${selected.map(s=>s.n+' '+s.name).join(', ')}\n`;
+  md += `> Full design document available separately.\n`;
+  md += separator;
+
+  selected.forEach(s=>{
+    md += sectionTemplate(s, ctx);
+    md += separator;
+  });
+
+  return md.trim();
+}
+
+function downloadPreRead(){
+  const md = generatePreRead();
+  const name = document.getElementById('svc-name').value || 'service';
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const blob = new Blob([md],{type:'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${slug}-committee-preread.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function generateMarkdown(){
+  const name=document.getElementById('svc-name').value||'Service name';
+  const desc=document.getElementById('svc-desc').value||'_Add one-liner description here_';
+  const owner=document.getElementById('svc-owner').value||CFG.owner||'_Team · @handle_';
+  const repoPrefix=CFG.repoPrefix||'github.com/org/';
+  const runbookBase=CFG.runbookBase||'';
+  const separator=CFG.separator==='---'?'\n\n---\n\n':CFG.separator==='blank'?'\n\n':'\n';
+  const scenario=selectedScenario?SCENARIOS.find(s=>s.id===selectedScenario)?.name:'Custom';
+  const selected=SECTIONS.filter(s=>checked.has(s.n));
+  const today=new Date().toISOString().slice(0,10);
+
+  let md=`# ${name} — design document\n\n`;
+  md+=`---\n\n`;
+
+  selected.forEach(s=>{
+    md+=sectionTemplate(s,{name,desc,owner,today,repoPrefix,runbookBase,techStackLines:buildTechStackLines()});
+    md+=separator;
+  });
+
+  return md.trim();
+}
+
+
+// ── Custom scenarios ──────────────────────────────────────────────────────────
+function toggleCustomScenario(){
+  const form = document.getElementById('custom-scenario-form');
+  const btn  = document.querySelector('#custom-scenario-block .custom-toggle-btn');
+  const open = form.classList.toggle('open');
+  if(btn) btn.textContent = open ? '− Collapse' : '+ Expand';
+  if(open) renderCustomScenarioRatings();
+}
+
+function renderCustomScenarioRatings(){
+  const grid = document.getElementById('csr-grid');
+  if(!grid) return;
+  const LABELS = {'2':'SR','1':'R','0':'○','-1':'—'};
+  const rateable=SECTIONS.filter(s=>{const n=parseInt(s.n);return Number.isFinite(n)&&n>=1&&s.layer!=='shared'||Number.isFinite(n)&&n>=1;});
+  grid.innerHTML = rateable.map(s=>`
+    <div class="csr-row" data-section="${s.n}">
+      <span class="csr-name">${s.n} · ${s.name}</span>
+      <div class="csr-btns" onclick="setCsrRatingFromEvent(event)">
+        ${[2,1,0,-1].map(v=>`<button class="csr-btn${v===1?' active':''}" data-n="${s.n}" data-v="${v}">${LABELS[String(v)]}</button>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function setCsrRating(btn){
+  btn.closest('.csr-btns').querySelectorAll('.csr-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setCsrRatingFromEvent(e){
+  const btn = e.target.closest('.csr-btn');
+  if(btn) setCsrRating(btn);
+}
+
+function addCustomScenario(){
+  const name = document.getElementById('cs-name').value.trim();
+  const desc = document.getElementById('cs-desc').value.trim();
+  if(!name){ document.getElementById('cs-name').focus(); return; }
+  const rateableSecs=SECTIONS.filter(s=>{const n=parseInt(s.n);return Number.isFinite(n)&&n>=1;});
+  const ratings = rateableSecs.map(s=>{
+    const row = document.querySelector(`.csr-row[data-section="${s.n}"]`);
+    const active = row ? row.querySelector('.csr-btn.active') : null;
+    return active ? parseInt(active.getAttribute('data-v')) : 1;
+  });
+  const id = 'custom-' + Date.now();
+  SCENARIOS.push({id, name, desc, short: name, ratings});
+  renderScenarioGrid();
+  document.getElementById('cs-name').value = '';
+  document.getElementById('cs-desc').value = '';
+  toggleCustomScenario();
+}
+
+// ── Custom sections ───────────────────────────────────────────────────────────
+let customSections = [];
+
+function toggleCustomSection(){
+  const form  = document.getElementById('custom-section-form');
+  const label = document.getElementById('custom-section-toggle');
+  const open  = form.classList.toggle('open');
+  if(label) label.textContent = open ? '− Collapse' : '+ Expand';
+}
+
+function addCustomSection(){
+  const name     = document.getElementById('cn-name').value.trim();
+  const layer    = document.getElementById('cn-layer').value;
+  const effort   = document.getElementById('cn-effort').value;
+  const trigger  = document.getElementById('cn-trigger').value.trim();
+  const template = document.getElementById('cn-template').value.trim();
+  if(!name){ document.getElementById('cn-name').focus(); return; }
+  const n = 'C' + (customSections.length + 1);
+  const layerLabels = {frontend:'Frontend',backend:'Backend',cross:'Cross-cutting',shared:'Shared'};
+  const section = {n, name, layer, ll: layerLabels[layer]||layer, effort, trigger: trigger||'As needed',
+                   file: name.toLowerCase().replace(/\s+/g,'-')+'.md', custom: true, template};
+  customSections.push(section);
+  SECTIONS.push(section);
+  checked.add(n);
+  renderSections();
+  document.getElementById('cn-name').value = '';
+  document.getElementById('cn-trigger').value = '';
+  document.getElementById('cn-template').value = '';
+  toggleCustomSection();
+}
+
+
+const GUIDES={
+  '01':"# 01 \u00b7 Version history\n\n**Layer:** Doc health \u00b7 **Effort:** Light\n**Mandatory trigger:** Schema migration \u00b7 Feature launch \u00b7 Security policy change\n\n---\n\n## Review checklist\n\n- [ ] Every schema migration that merged to production has a row\n- [ ] Every breaking change is marked Yes in the Breaking? column \u2014 not Maybe or blank\n- [ ] Breaking? = Yes rows name who was notified and link to the deprecation entry in 14\n- [ ] Version numbers follow the convention \u2014 no patch versions\n- [ ] \"What changed\" is one sentence; detail lives in the changed section\n\n---\n\n## Template\n\n```\n**Mandatory triggers:** \u2610 Schema migration merged \u00b7 \u2610 Major feature launch \u00b7 \u2610 Security policy change\n> Tick the box for each trigger type this document has ever included \u2014 a quick signal of what kinds of changes have occurred.\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v1.0 | YYYY-MM-DD | @handle | Initial document | Initial | N/A |\n```\n\n\n### Worked example \u2014 Order Management Service (e-commerce)\n\n> **Breaking change definition:** any change requiring a consumer to update their code \u2014 column rename, type change, enum value removal, endpoint removal, auth change, response shape change. When in doubt, mark Yes.\n\n**Mandatory triggers:** \u2611 Schema migration merged \u00b7 \u2611 Major feature launch \u00b7 \u2610 Security policy change\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v3.0 | 2025-11-03 | @jane.doe | Added `returns` entity; order status enum extended with `return_requested`, `returned`; 11 and 13 updated | Migration | **Yes** \u2014 consumers must handle two new enum values. Notified via #api-changes. See 14. |\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL); 10 and 11 updated | Migration | **Yes** \u2014 direct SQL `INSERT` omitting `currency_code` fails if migration runs before deploy. See 14. |\n| v1.1 | 2025-06-02 | @jane.doe | Added Stripe webhook idempotency rule to 11; added SendGrid to 04 and 12 | Feature | No \u2014 doc update only |\n| v1.0 | 2025-03-18 | @jane.doe | Initial document | Initial | N/A |\n\n---\n\n## Quick reference\n\n**What it is:** A chronological log of every meaningful change to this document \u2014 what changed, when, who changed it, and whether existing cons\u2026\n\n**When to use:** Always. Every project. No exceptions.\n\n**Skip / reduce if:** No skip condition.\n\n## What gets a row \u2014 and what doesn't\n\n**Add a row when:**\n- A schema migration merges to production\n- A major feature launches (new endpoints, new entities, new flows)\n- A security policy changes (new secret rotation, new PII classification, pen test findings actioned)\n- A section changes enough that a reader of the old version would make a wrong technical decision\n\n**Do not add a row for:**\n- Typo fixes, rewording, or formatting changes that don't affect meaning\n- Diagram cosmetic updates\n- Adding a row to 02 Review history (that's a review, not a version change)\n\n## Version numbering\n\n| Bump | When | Example |\n|------|------|---------|\n| **Major** (v2.0) | Breaking change for any consumer, or a multi-section rewrite | Removing an enum value; renaming a column |\n| **Minor** (v1.1) | Additive \u2014 doesn't break existing consumers | Nullable column added; new rule in 11 |\n| **Initial** (v1.0) | First version of the document | \u2014 |\n\nNo patch versions. If it's breaking, it's a major bump.\n\n## Valid trigger values\n\n| Value | Meaning |\n|-------|---------|\n| `Migration` | A database schema migration merged |\n| `Feature` | A new product feature launched |\n| `Security` | A security policy changed |\n| `Initial` | First version of the document |\n\n**Cross-references:** 02 Review history \u2014 reviews are separate from version history \u00b7 14 API surface \u2014 update whenever Breaking? = Yes\n\n---\n\n## Best practices\n\n- **One change per row** \u2014 if a migration adds two unrelated tables, split into two rows.\n- **One sentence in \"What changed\"** \u2014 detail lives in the section that changed.\n- **Mark Breaking? honestly** \u2014 a false No is far more damaging than an unnecessary process step. When Breaking? = Yes, follow the deprecation process in 14.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 Breaking? is honest and actionable**\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL) | Migration | **Yes** \u2014 direct SQL INSERT omitting `currency_code` fails. Notified via #api-changes. See 14. |\n\n*Why good:* Names exactly who is affected, how, and where to find the deprecation detail.",
+  '02':"# 02 \u00b7 Review history\n\n**Layer:** Doc health \u00b7 **Effort:** Light\n**Mandatory trigger:** Schema migration \u00b7 Feature launch \u00b7 Security policy change\n\n---\n\n## Review checklist\n\n- [ ] The reviewer is not the same person who made the last edit\n- [ ] Status is one of three valid values: Approved, Needs update, Approved after fixes\n- [ ] Every \"Needs update\" row has a matching \"Approved after fixes\" row, or is still open with an assignee and due date\n- [ ] \"Next review due\" is filled \u2014 either a date or a trigger event\n- [ ] Notes are specific enough that someone else can act without asking\n\n---\n\n## Template\n\n```markdown\n**Doc health:** `\u2713 Up to date` / `\u26a0 Needs update`\n**Last reviewed:** YYYY-MM-DD\n**Next review due:** YYYY-MM-DD \u00b7 or \u00b7 on [trigger event]\n\n| Date | Reviewer | Status | Notes |\n|------|----------|--------|-------|\n| YYYY-MM-DD | @handle | Approved / Needs update / Approved after fixes | What was checked or what was found |\n```\n\n\n### Worked example \u2014 Order Management Service (e-commerce)\n\n**Doc health:** `\u2713 Up to date`\n**Last reviewed:** 2025-11-20\n**Next review due:** on next schema migration or feature launch\n\n| Date | Reviewer | Status | Notes |\n|------|----------|--------|-------|\n| 2025-11-20 | @alex.kim | Approved after fixes | Post v3.0 migration. Found 13 missing an index entry. Fixed and re-verified. All other sections accurate. |\n| 2025-09-21 | @ali.h | Approved after fixes | Fixed 10 and 11 as flagged by @dave.t on 2025-09-14. Re-verified both sections against code. |\n| 2025-09-14 | @dave.t | Needs update | 10 and 11 missing `currency_code` rules after v2.0 migration. **Assigned to @ali.h, due 2025-09-21.** |\n| 2025-03-18 | @jane.doe | Approved | First review at initial release. All sections verified against codebase. |\n\n> **The key pattern:** `Needs update` stays open and records what's wrong. The `Approved after fixes` row above it closes it. Never delete the original \u2014 the pair shows how long the doc was unreliable and who resolved it.\n\n---\n\n## Quick reference\n\n**What it is:** A record of who verified the whole document is still accurate, when they did it, and their verdict.\n\n**When to use:** Always. Required for any document used as a handoff or onboarding artifact.\n\n**Skip / reduce if:** No skip condition.\n\n## Review vs edit\n\n| Action | Goes in |\n|--------|---------|\n| You changed content in the doc | 01 Version history |\n| You read the whole doc and confirmed it's accurate | 02 Review history |\n| You reviewed, found issues, fixed them, re-verified | Both \u2014 fix in 01, approval in 02 |\n\nThe reviewer must not be the person who made the last edit.\n\n## Valid status values\n\n| Status | Meaning |\n|--------|---------|\n| `Approved` | Whole doc reviewed. All sections accurate. No changes needed. |\n| `Needs update` | Found stale or incorrect content. **Changes still outstanding.** |\n| `Approved after fixes` | Found issues, fixes made, re-verified. Doc is now accurate. |\n\n`Needs update` means the doc is currently unreliable. Resolve within one sprint.\n\n## When status = Needs update\n\n1. **Record what's stale** in Notes \u2014 specific enough that someone else can fix it without asking.\n2. **Fix it or assign it** \u2014 fix immediately (preferred) or create a ticket and tag the owner.\n3. **Close with a new row** \u2014 status `Approved after fixes`, noting which sections were re-verified.\n4. **Update 01** \u2014 a corrected section is a doc edit and belongs in the version history.\n\n## Next review due field\n\nTwo valid formats \u2014 use whichever fits your team:\n- **Event-based:** `on next schema migration or feature launch`\n- **Date-based:** `2026-03-01`\n\nAlways update this field when you add a review row.\n\n**Cross-references:** 01 Version history \u2014 edits go there, reviews go here\n\n---\n\n## Best practices\n\n- Reviewer must not be the last editor.\n- One row per full review. A targeted fix row is the exception \u2014 note which sections were re-verified.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 Notes are specific and actionable**\n\n| Date | Reviewer | Status | Notes |\n|------|----------|--------|-------|\n| 2025-09-14 | @dave.t | Needs update | Section 10 missing `currency_code` validation rules for FE, API, and DB. Section 11 missing corresponding pricing rule. **Assigned to @ali.h, due 2025-09-21.** |\n\n*Why good:* Specifies which sections, which fields, who owns the fix, and when it's due. Someone else can act on this without asking.",
+  '03':"# 03 \u00b7 Project snapshot\n\n**Layer:** Overview \u00b7 **Effort:** Medium\n**Mandatory trigger:** Service mandate changes \u00b7 Stack changes\n\n---\n\n## Review checklist\n\n- [ ] One-liner passes the elevator test \u2014 no acronyms, no assumed context\n- [ ] Every non-goal names the team that owns it, not just what OMS doesn't do\n- [ ] Functional requirements have a Status value (Met / Partial / Not yet) \u2014 no blanks or TBD\n- [ ] Tech stack matches what is actually deployed, not what was planned\n- [ ] Deploy & rollback links resolve and point to the current runbook\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Overview\n\n**Service name:** Order Management Service (OMS)\n**Status:** `Production`\n**One-liner:** Handles the full lifecycle of customer orders \u2014 creation, payment, fulfillment, and returns.\n\n| Field | Value |\n|-------|-------|\n| Service owner | Platform team \u00b7 @jane.doe |\n| Repo | `github.com/acme/oms` |\n| Runbook | `confluence.acme.com/oms/runbook` |\n| Last updated | 2025-11-20 |\n\n**Tech stack:**\n- Frontend: Next.js 14, React 18, TypeScript\n- Backend: Node 20, Express\n- Database: PostgreSQL 16\n- Cache: Redis 7\n- Infrastructure: GCP Cloud Run (auto-scale 2\u201320 instances)\n- Key services: Stripe (payments), SendGrid (email), Warehouse API (inventory)\n\n---\n\n## Quick reference\n\n**What it is:** The service's identity card \u2014 who owns it, what it does, what it runs on, and what it's trying to achieve.\n\n**When to use:** Always \u2014 the first thing a new engineer or service inheritor reads.\n\n**Skip / reduce if:** Skip individual tabs that don't apply. A simple internal CLI may only need Overview.\n\n**Cross-references:** 04 System context \u00b7 12 Reliability (SLOs tab)\n\n---\n\n## Best practices\n\n- One-liner must pass the \"stranger in an elevator\" test \u2014 no acronyms, no assumed context.\n- Non-goals are more valuable than goals \u2014 document who owns what you don't do.\n- Functional requirements: the Status column forces honesty over aspirational writing.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 one-liner passes the elevator test**\n\n> Handles the full lifecycle of customer orders \u2014 creation, payment, fulfillment, and returns.\n\n*Why good:* No acronyms. A non-engineer understands it in one read. The scope boundary is clear.",
+  '04':"# 04 \u00b7 System context\n\n**Layer:** Overview \u00b7 **Effort:** Light\n**Mandatory trigger:** New integration added or removed\n\n---\n\n## Review checklist\n\n- [ ] Every external system has a row \u2014 nothing in the codebase calls an external service not listed here\n- [ ] \"If it's down\" column is specific enough to act on at 2am \u2014 no \"things break\"\n- [ ] Every dependency here has a matching failure mode row in section 12\n- [ ] Owner column names a team or person, not just \"vendor\"\n- [ ] Diagram matches the dependency table \u2014 no orphaned arrows or missing nodes\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### System boundary diagram\n\n```\n[Customer browser / mobile app]\n         \u2502 HTTPS / JSON\n         \u25bc\n[Next.js Storefront] \u2500\u2500\u2500\u2500 HTTPS/JWT \u2500\u2500\u2500\u2500\u25ba [OMS \u2014 this service]\n                                                 \u2502\n                          \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n                          \u2502                      \u2502                      \u2502\n                    Stripe SDK             REST + JWT              SMTP (SendGrid)\n                          \u2502                      \u2502                      \u2502\n                          \u25bc                      \u25bc                      \u25bc\n                      [Stripe]          [Warehouse API]           [SendGrid]\n                    (Payments)           (Inventory)               (Email)\n\n[Ops Dashboard] \u2500\u2500 REST + Admin JWT \u2500\u2500\u25ba [OMS]\n[Auth Service]  \u2500\u2500 JWKS endpoint   \u2500\u2500\u25ba [OMS] (JWT public key at startup)\n```\n\n### External dependencies\n\n| System | Owner | Data exchanged | If it's down |\n|--------|-------|----------------|-------------|\n| Next.js Storefront | FE team | Orders, cart state, payment status, user sessions | Customer-facing outage \u2014 checkout and order history unavailable |\n| Ops Dashboard | Internal tools team | Order list, status updates, fulfillment overrides | Ops team loses visibility \u2014 no customer impact |\n| Stripe | Vendor | Payment intents, charges, refunds, webhook events | New checkouts fail; existing paid orders unaffected |\n| Warehouse API | Logistics team | Stock levels, stock reservations, fulfillment status | Checkout blocked \u2014 cannot reserve stock |\n| SendGrid | Vendor | Order confirmation, shipping, return emails | Emails queue in Bull; no data loss; delivered on recovery |\n| Auth service | Identity team | JWT public key (JWKS), user roles | All authenticated endpoints fail once cached key expires (~1hr) |\n\n---\n\n## Quick reference\n\n**What it is:** A map of every actor and system this service interacts with \u2014 who calls it, what it calls, what data flows between them, and wh\u2026\n\n**When to use:** Any service with external dependencies. Essential for blast-radius analysis before any change.\n\n**Skip / reduce if:** Skip if: standalone internal tool with no external calls. Rare in practice.\n\n**Cross-references:** 12 Reliability \u2014 failure modes\n\n---\n\n## Best practices\n\n- No code \u2014 actors, data flows, and downstream impact only.\n- Every dependency here must have a row in 12 Failure modes. Add both at the same time.\n- The \"if it's down\" column is the most-read field during incidents \u2014 fill it precisely.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 \"if it's down\" is specific and incident-ready**\n\n| System | Owner | Data exchanged | If it's down |\n|--------|-------|----------------|-------------|\n| Stripe | Vendor | Payment intents, charges, refunds | New checkouts fail; existing paid orders unaffected |\n\n*Why good:* Tells on-call exactly what breaks and what doesn't, without reading any code.",
+  '05':{nextjs:"# 05 \u00b7 FE architecture\n\n**Layer:** Frontend \u00b7 **Effort:** Medium\n**Mandatory trigger:** New route \u00b7 New shared component \u00b7 New feature flag \u00b7 Critical component design decision\n\n---\n\n## Review checklist\n\n- [ ] Every protected route is listed \u2014 no route with implicit or undocumented auth guard\n- [ ] Component tree only contains major shared components \u2014 not every UI atom\n- [ ] Critical components table only documents non-obvious decisions \u2014 no \"renders a button\" entries\n- [ ] Every feature flag has a removal date and an owner\n- [ ] Performance budget CI gates are enforced \u2014 not advisory-only\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Route map\n\n| Route | Page / component | Auth guard | Layout |\n|-------|-----------------|------------|--------|\n| `/` | Home \u2014 product listing | Public | `StoreFront` |\n| `/checkout` | Checkout wizard \u2014 address \u2192 payment \u2192 confirm | Auth required \u2192 redirect `/login?next=/checkout` | `StoreFront` |\n| `/account/orders` | Order history \u2014 paginated, filterable by status | Auth required | `Account` |\n| `/account/orders/:id` | Order detail \u2014 line items, tracking, cancel/return CTA | Auth required + owner check | `Account` |\n| `/login` | Auth form \u2014 email/password + Google SSO | Public \u2014 redirect to `/account/orders` if already logged in | `Auth` |\n| `/admin/orders` | Ops dashboard \u2014 all orders, status filters, bulk actions | Admin role | `Admin` |\n\n---\n\n## Quick reference\n\n**What it is:** Five views of the frontend: every URL and who can access it, the major shared component hierarchy as a graph, design decisions \u2026\n\n**When to use:** Any project with a frontend layer.\n\n**Skip / reduce if:** Skip entirely if: API-only or headless service with no UI layer.\n\n## Critical components \u2014 what to document\n\nA component earns a row when the implementation choice is consequential and non-obvious. The question is: would a senior engineer disagree on how to build this without discussion?\n\nGood candidates:\n- **Pagination strategy** \u2014 cursor vs offset is a data access decision with correctness implications\n- **State ownership** \u2014 whether a component owns its own state or delegates to a store\n- **Event sourcing** \u2014 a component that produces events vs one that directly mutates\n- **Async rendering** \u2014 skeleton vs spinner vs blocking, and why\n\nNot worth documenting:\n- Standard form components with no unusual behaviour\n- Presentational components with no state\n\n**Format:** one row per critical component. Keep the rationale to one sentence \u2014 if it needs more, the decision belongs in section 17 Trade-off.\n\n**Cross-references:** 06 State & data flow \u00b7 07 AuthN & AuthZ (FE token flow) \u00b7 17 Trade-off (component design decisions that need full alternatives table) \u00b7 18 Terminology\n\n---\n\n## Best practices\n\n- Route map: include every protected route explicitly \u2014 omissions cause auth bugs.\n- Component tree: only major shared components \u2014 not every UI atom.\n- Critical components: only document where the design decision is non-obvious. If anyone could implement it correctly without reading the doc, skip it.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 critical component decision is falsifiable**\n\n| Component | Props contract | State owned | Key design decision |\n|-----------|---------------|-------------|---------------------|\n| `<OrderList>` | `customerId: string` | Cursor, loading, error | **Cursor pagination over offset** \u2014 orders table has high insert rate; offset produces unstable results as rows shift. Cursor on `(created_at, id)` is stable. |\n\n*Why good:* The decision names the constraint (high insert rate) and the consequence (unstable results). A reviewer can verify the claim or disagree with it.",angular:"# 05 \u00b7 FE architecture\n\n**Layer:** Frontend \u00b7 **Effort:** Medium\n**Mandatory trigger:** New route \u00b7 New shared component \u00b7 New feature flag \u00b7 Critical component design decision\n\n---\n\n## Review checklist\n\n- [ ] Every protected route is listed \u2014 no route with implicit or undocumented CanActivate guard\n- [ ] Component tree only contains major shared components \u2014 not every UI atom\n- [ ] Critical components table documents OnPush vs Default decisions where non-obvious\n- [ ] Every feature flag has a removal date and an owner\n- [ ] Performance budget CI gates are enforced \u2014 not advisory-only\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Route map\n\n| Route | Module / component | Auth guard | Notes |\n|-------|--------------------|------------|-------|\n| `/` | `HomeComponent` | Public | |\n| `/checkout` | `CheckoutComponent` | `AuthGuard` \u2192 redirect `/login` | |\n| `/account/orders` | `OrderListComponent` | `AuthGuard` | |\n| `/account/orders/:id` | `OrderDetailComponent` | `AuthGuard` + owner check | |\n| `/login` | `LoginComponent` | Public \u2014 redirect if already logged in | |\n| `/admin/orders` | `AdminOrdersComponent` | `RoleGuard` (admin) | |\n\n---\n\n## Quick reference\n\n**What it is:** Five views of the frontend: every URL and who can access it, the major shared component hierarchy as a graph, design decisions \u2026\n\n**When to use:** Any project with a frontend layer.\n\n**Skip / reduce if:** Skip entirely if: API-only or headless service with no UI layer.\n\n## Critical components \u2014 what to document\n\nA component earns a row when the implementation choice is consequential and non-obvious.\n\nGood candidates:\n- **Pagination strategy** \u2014 cursor vs offset is a data access decision with correctness implications\n- **DI scope** \u2014 whether a service is root-scoped, module-scoped, or component-scoped, and why\n- **Change detection strategy** \u2014 `OnPush` components and the state assumptions that come with it\n- **Async rendering** \u2014 skeleton vs spinner vs blocking, and why\n\nNot worth documenting:\n- Standard form components with no unusual behaviour\n- Presentational components with no state\n\n**Format:** one row per critical component. Keep the rationale to one sentence \u2014 if it needs more, the decision belongs in section 17 Trade-off.\n\n**Cross-references:** 06 State & data flow \u00b7 07 AuthN & AuthZ (FE token flow) \u00b7 17 Trade-off (component design decisions that need full alternatives table) \u00b7 18 Terminology\n\n---\n\n## Best practices\n\n- Route map: include every protected route explicitly \u2014 omissions cause auth bugs.\n- Component tree: only major shared components \u2014 not every UI atom.\n- Critical components: only document where the design decision is non-obvious. If anyone could implement it correctly without reading the doc, skip it.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 DI scope is documented with consequence**\n\n| Component | Input / Output contract | DI scope | Key design decision |\n|-----------|------------------------|----------|---------------------|\n| `PaymentFormComponent` | `@Input() orderId` \u00b7 `@Output() success` | Component-scoped `PaymentService` | **Component-scoped** \u2014 root-scoped would retain payment state across navigation. New checkout session must start clean. |\n\n*Why good:* The consequence of the wrong choice is documented. An engineer refactoring the DI scope knows not to change it to root without understanding the session isolation requirement."},
+  '06':{nextjs:"# 06 \u00b7 State & data flow\n\n**Layer:** Frontend \u00b7 **Effort:** Medium\n**Mandatory trigger:** New state layer introduced \u00b7 Data fetching pattern changes\n\n---\n\n## Review checklist\n\n- [ ] State type table covers all three layers \u2014 local, server, and global\n- [ ] No server data in global store (Zustand) \u2014 only client-owned state\n- [ ] Data flow diagram matches the actual code structure \u2014 hook names and paths are accurate\n- [ ] Financial data is marked with `staleTime: Infinity` \u2014 never auto-refetched\n- [ ] Real-time behaviour is documented \u2014 even if the answer is \"not implemented\"\n- [ ] `isLoading` vs `isFetching` distinction is understood by the team\n\n---\n\n## Template\n\n### State management\n\n| State type | Tool | Rules |\n|------------|------|-------|\n| Local | `useState` / `useReducer` | Form inputs, modal open/close, accordion state. Never hoist unless a sibling needs it. |\n| Server | TanStack Query v5 | All API data. Cache key: `['orders', userId]`, `['order', orderId]`. Stale time: 30s for lists, 60s for detail. |\n| Global | Zustand | Auth user, cart, locale. One slice per domain. Never put server data in Zustand. |\n\n### Data flow\n\n```mermaid\ngraph LR\n  Component -->|calls hook| QueryHook[Query hook\\nsrc/hooks/]\n  QueryHook -->|TanStack Query| APIClient[API client\\nsrc/api/]\n  APIClient -->|HTTP| Backend[Backend API]\n  Backend -->|response| APIClient\n  APIClient -->|cached result| QueryHook\n  QueryHook -->|data / loading / error| Component\n  Component -->|mutation| MutationHook[Mutation hook]\n  MutationHook -->|POST / PUT / DELETE| APIClient\n  MutationHook -->|invalidate query keys| QueryHook\n```\n\n> Components never call `fetch` or `axios` directly \u2014 always through query/mutation hooks in `src/hooks/`.\n\n**Rules**\n\n| Concern | Approach |\n|---------|----------|\n| Cache invalidation | Mutations invalidate related query keys immediately on success. e.g. cancelling an order invalidates `['orders', userId]` and `['order', orderId]`. |\n| Stale data | Lists: 30s. Detail pages: 60s. Payment-related data: `staleTime: Infinity` \u2014 never auto-refetched. |\n| Request deduplication | TanStack Query deduplicates identical in-flight requests. No manual debouncing needed for concurrent mounts. |\n| Real-time updates | _Not implemented \u2014 polling on page focus + 60s interval. / Supported via WebSocket._ |\n\n---\n\n## Quick reference\n\n**What it is:** How the FE manages state across local, server, and global layers \u2014 and how data moves between components and the backend.\n\n**When to use:** Any FE project with non-trivial state management.\n\n**Skip / reduce if:** Skip if: server-rendered only with no client-side fetching, or static site.\n\n**Cross-references:** 09 Error handling \u00b7 07 AuthN & AuthZ (token refresh flow) \u00b7 17 Trade-off (state management decisions)\n\n---\n\n## Best practices\n\n- Document the decision, not just the tool \u2014 why this library over the alternatives. See 17 Trade-off.\n- The data flow diagram must show the full path: component \u2192 hook \u2192 API client \u2192 backend and back.\n- Components must never call `fetch` or `axios` directly \u2014 always through hooks in `src/hooks/`.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 offline behaviour is explicit**\n\n| State | Pattern | Notes |\n|-------|---------|-------|\n| Offline | No offline support \u2014 explicitly out of scope | TanStack Query retries 3\u00d7 with backoff. On failure: persistent \"Connection lost\" toast. Checkout abandoned on connectivity loss to prevent partial payment state. |\n\n*Why good:* \"Not supported\" is a complete, honest answer. It prevents someone building an offline feature that conflicts with the checkout abandonment rule.",angular:"# 06 \u00b7 State & data flow\n\n**Layer:** Frontend \u00b7 **Effort:** Medium\n**Mandatory trigger:** New state layer introduced \u00b7 Data fetching pattern changes\n\n---\n\n## Review checklist\n\n- [ ] State type table covers all three layers \u2014 local, server, and global\n- [ ] No component calls `HttpClient` directly \u2014 all HTTP goes through services\n- [ ] Components subscribe via `async` pipe or `toSignal()` \u2014 no manual `subscribe()` without explicit unsubscribe\n- [ ] Data flow diagram matches the actual service and component structure\n- [ ] Real-time behaviour is documented \u2014 even if the answer is \"not implemented\"\n- [ ] `catchError` is present in every service HTTP pipeline\n\n---\n\n## Template\n\n### State management\n\n| State type | Tool | Rules |\n|------------|------|-------|\n| Local | Component properties / `signal()` | Form state, toggle state, accordion. Never expose beyond the component. |\n| Server | Service + `HttpClient` + RxJS | All API calls live in services. Components subscribe via `async` pipe or `toSignal()`. |\n| Global | NgRx store / `BehaviorSubject` | Auth user, shared selection, locale. Only for state that survives navigation. |\n\n### Data flow\n\n```mermaid\ngraph LR\n  Component -->|injects| Service[Angular service]\n  Service -->|HttpClient| Backend[Backend API]\n  Backend -->|Observable response| Service\n  Service -->|Observable / signal| Component\n  Component -->|async pipe / toSignal| Template[Template]\n  Service -->|catchError| ErrorState[Typed error state]\n  ErrorState --> Component\n```\n\n> Components never call `HttpClient` directly. All HTTP lives in services. Components subscribe via `async` pipe or `toSignal()`.\n\n**Rules**\n\n| Concern | Approach |\n|---------|----------|\n| Cache invalidation | Re-fetch via service method on mutation. NgRx: dispatch reload action from effect after successful mutation. |\n| Stale data | No built-in cache. Use `ReplaySubject(1)` or NgRx selector memoisation for expensive queries. |\n| Error handling | `catchError` in service pipeline. Component receives typed error state. See 09 for FE error patterns. |\n| Optimistic updates | Dispatch optimistic action \u2192 call API \u2192 revert on error. NgRx only \u2014 not with plain service Observables. |\n| Real-time updates | _Not implemented \u2014 polling via `interval()` + `switchMap`. / Supported via WebSocket with `webSocket()`._ |\n\n---\n\n## Quick reference\n\n**What it is:** How the FE manages state across local, server, and global layers \u2014 and how data moves between components and the backend.\n\n**When to use:** Any FE project with non-trivial state management.\n\n**Skip / reduce if:** Skip if: server-rendered only with no client-side fetching, or static site.\n\n**Cross-references:** 09 Error handling \u00b7 07 AuthN & AuthZ (token refresh flow) \u00b7 17 Trade-off (state management decisions)\n\n---\n\n## Best practices\n\n- Document the decision, not just the tool \u2014 why this library over the alternatives. See 17 Trade-off.\n- The data flow diagram must show the full path: component \u2192 service \u2192 HttpClient \u2192 backend and back.\n- Components must never call `HttpClient` directly \u2014 all HTTP lives in services.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 component only subscribes, never fetches**\n\n```typescript\n// Good \u2014 component delegates to service\n@Component({...})\nexport class OrderListComponent {\n  orders$ = this.orderService.getOrders();\n  constructor(private orderService: OrderService) {}\n}\n```\n\n*Why good:* The component has no knowledge of HTTP. Swapping the transport layer (REST \u2192 GraphQL, mock in tests) only requires changing the service."},
+  '07':"# 07 \u00b7 AuthN & AuthZ\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Medium\n**Mandatory trigger:** Token strategy changes \u00b7 New role added\n\n---\n\n## Review checklist\n\n- [ ] Token storage rule is explicit \u2014 access token in memory, refresh token in httpOnly cookie\n- [ ] Every protected route is listed \u2014 no route left with implicit or undocumented auth\n- [ ] Owner check behaviour is documented \u2014 returns 403, not 404, with rationale\n- [ ] Every role has an \"Assigned by\" entry \u2014 not just what it can do\n- [ ] Webhook auth is documented separately if it doesn't use JWT\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### FE token flow\n\n| Concern | Implementation |\n|---------|----------------|\n| Token storage | Access token in memory only (Zustand `authStore`). Refresh token in `httpOnly Secure` cookie. **Never `localStorage`** \u2014 XSS would expose the token. |\n| Token refresh | Axios interceptor catches 401, refreshes silently, retries once. On second 401 \u2192 clear `authStore`, redirect to `/login?next={path}`. |\n| Protected routes | `<AuthGuard>` HOC wraps `/checkout`, `/account/*`. Redirects to `/login` if null. Renders skeleton while auth resolves. |\n| Admin routes | `<AdminGuard>` wraps `/admin/*`. Checks `user.role === 'admin'`. Shows 403 page if authenticated but not admin \u2014 does not redirect to login. |\n\n---\n\n## Quick reference\n\n**What it is:** The FE/BE contract for identity: where tokens are stored and refreshed on the FE, how the BE validates and enforces access, and\u2026\n\n**When to use:** Any service handling authenticated users. Required for: security audits, compliance reviews, service handoffs.\n\n**Skip / reduce if:** Skip if: fully public read-only API with zero authentication.\n\n**Cross-references:** 08 Security \u00b7 09 Error codes (401/403) \u00b7 05 FE route guards\n\n---\n\n## Best practices\n\n- FE storage rule is non-negotiable \u2014 document it so engineers can't choose wrong accidentally.\n- Role-based UI hiding must note: \"BE still enforces \u2014 this is UX only.\"\n- Roles table: document who assigns each role, not just what each role can do.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 owner check returns 403, not 404, with rationale**\n\n| Concern | Implementation |\n|---------|----------------|\n| Owner check | All order reads and mutations verify `order.customer_id === req.user.id` unless `role === 'admin'`. Returns **403** (not 404) \u2014 returning 404 leaks that the order exists, enabling enumeration attacks. |\n\n*Why good:* The implementation and the security rationale are in the same row. An engineer maintaining this code knows not to \"fix\" the 403 to a 404.",
+  '08':"# 08 \u00b7 Security\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Heavy\n**Mandatory trigger:** New dependency \u00b7 Security policy change \u00b7 Pen test cycle\n\n---\n\n## Review checklist\n\n- [ ] Every secret has a rotation schedule \u2014 no secret without a policy\n- [ ] Every PII field is listed individually \u2014 \"we encrypt PII\" is not sufficient\n- [ ] The \"In logs?\" column names the substitute to log instead of the PII field\n- [ ] CORS allowlist is explicit \u2014 no wildcard in prod\n- [ ] Pen test section has a \"next scheduled\" date, not just the last date\n- [ ] GDPR erasure behaviour is documented if the service stores PII\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Secrets & config\n\n| Secret / config | Storage & access | Rotation |\n|-----------------|------------------|----------|\n| `STRIPE_SECRET_KEY` | GCP Secret Manager \u00b7 injected at deploy \u00b7 never hardcoded or logged | Annual + immediately on staff departure |\n| `STRIPE_WEBHOOK_SECRET` | GCP Secret Manager \u00b7 webhook handler only | Annual + on Stripe dashboard regeneration |\n| `DATABASE_URL` (prod) | GCP Secret Manager \u00b7 Cloud Run service account only \u00b7 no human access | Quarterly |\n| `JWT_PUBLIC_KEY` | Fetched from Auth JWKS at startup \u00b7 memory only \u00b7 never written to disk | Auth service manages \u2014 OMS re-fetches on expiry |\n| `SENDGRID_API_KEY` | GCP Secret Manager \u00b7 `mail.send` scope only | Annual |\n| `WAREHOUSE_API_KEY` | GCP Secret Manager \u00b7 rotate on team offboarding | Quarterly |\n\n---\n\n## Quick reference\n\n**What it is:** Four dimensions of security posture: secret management and rotation, surface hardening, data classification and PII handling, a\u2026\n\n**When to use:** Any production service. Required for: security audits, compliance (GDPR, PCI DSS, SOC2), services handling PII or payment data.\n\n**Skip / reduce if:** Reduce for internal-only tooling. Keep secrets and data classification regardless.\n\n**Cross-references:** 07 AuthN & AuthZ \u00b7 09 Observability \u00b7 12 Recovery & backup \u00b7 16 Security testing in CI\n\n---\n\n## Best practices\n\n- Secrets: document rotation policy alongside storage \u2014 no rotation schedule = liability.\n- Data classification: every PII field must appear here \u2014 \"we encrypt PII\" is not sufficient.\n- Pen test: document open findings with status \u2014 pass/fail alone is not actionable.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 PII field with storage, logging rule, and substitute**\n\n| Data | Class | Where stored | In logs? |\n|------|-------|--------------|----------|\n| Customer email | PII | PostgreSQL `customers` \u00b7 encrypted at rest | Never \u2014 use `customer_id` |\n\n*Why good:* Names the exact substitute to log instead. Developers don't have to guess what to use when they can't log the email.",
+  '09':"# 09 \u00b7 Error handling\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Medium\n**Mandatory trigger:** New error code added \u00b7 Alert threshold changes\n\n---\n\n## Review checklist\n\n- [ ] Every HTTP error code the service returns has a row \u2014 no undocumented codes\n- [ ] Each FE pattern specifies location and dismissal, not just the pattern name\n- [ ] Response tiers were agreed by the whole team \u2014 not solo-authored\n- [ ] Every alert row has a working playbook link \u2014 no dead links\n- [ ] P1 and P2 definitions are specific enough to resolve \"is this a P1?\" at 2am\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### FE patterns\n\n| Error type | Pattern | Notes |\n|------------|---------|-------|\n| Checkout form validation | Inline below each invalid field | Red border + message directly below. Scroll to first error on submit. Never toast. |\n| Payment declined | Inline in `<PaymentForm>` \u2014 step does not advance | Stripe decline codes mapped to human messages via `src/lib/stripeErrors.ts`. |\n| Network failure | Persistent toast + \"Retry\" button | Shown after all retries exhausted. Dismiss on success. |\n| Order action failure (cancel, return) | Toast \u2014 red, auto-dismiss 6s | Action-specific message + support chat link. |\n| Component crash | `<PageErrorBoundary>` \u2014 full-page message | Generic message + Go back / Refresh CTAs. Sentry captures automatically. |\n| Empty cart checkout | Checkout button disabled + tooltip | Not a toast \u2014 user must resolve before proceeding. |\n\n---\n\n## Quick reference\n\n**What it is:** Three layers of error contract: FE UI patterns by error type, a BE error code catalogue (the API contract), and observability \u2014\u2026\n\n**When to use:** Any production service. The error code catalogue is the most-read section during FE/BE integration. Response tiers required for any service with on-call rotation.\n\n**Skip / reduce if:** Reduce for prototypes. Response tiers optional for services without on-call.\n\n**Cross-references:** 08 Security \u00b7 12 Failure modes\n\n---\n\n## Best practices\n\n- FE patterns: \"inline message\" needs location, component, and dismissal trigger \u2014 not just the pattern name.\n- Error codes: one row per distinct FE behavior. Two codes handled identically = one code.\n- Response tiers must be agreed by the whole team \u2014 not solo-authored.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 error code maps to specific FE behaviour**\n\n| HTTP | Code | FE handling |\n|------|------|-------------|\n| 409 | `ORDER_NOT_CANCELLABLE` | FE disables cancel button proactively for `shipped`/`cancelled` status. If reached via API: \"This order can no longer be cancelled.\" |\n\n*Why good:* The FE handles this in two layers \u2014 proactively (disable button) and reactively (if the API is called anyway). Both are documented so neither gets dropped.",
+  '10':"# 10 \u00b7 Data validation map\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Light\n**Mandatory trigger:** New form field \u00b7 Schema migration \u00b7 Validation bug fixed\n\n---\n\n## Review checklist\n\n- [ ] Every user-facing field has a row \u2014 nothing silently validated at DB only\n- [ ] \"\u2014\" is used for absent validation, not a blank cell\n- [ ] Every DB-only constraint is flagged \u2014 these produce 500s, not user messages\n- [ ] Owner column is filled for every row \u2014 agreed before the bug is filed\n- [ ] This section was updated in the same PR as the schema migration\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Checkout form fields\n\n| Field | FE rule | API rule | DB constraint | Error surfaces | Owner |\n|-------|---------|----------|---------------|----------------|-------|\n| `email` | Required \u00b7 RFC 5322 \u00b7 max 255 | Required \u00b7 lowercase \u00b7 max 255 \u00b7 unique | `UNIQUE NOT NULL VARCHAR(255)` | Inline below field | FE team |\n| `shipping.*` (name, address, postcode) | Required \u00b7 format and length per field | Required \u00b7 sanitised \u00b7 length enforced | `NOT NULL VARCHAR(N)` per field | Inline below each field | FE team |\n| `shipping.country_code` | Required \u00b7 from dropdown | Required \u00b7 in `allowed_shipping_countries` | `NOT NULL VARCHAR(2)` | FE dropdown prevents invalid | FE team |\n| `items[].product_id` | \u2014 (set by add-to-cart) | Required \u00b7 exists in Catalog \u00b7 purchasable | `FK NOT NULL` | 409 `PRODUCT_UNAVAILABLE` | BE team |\n| `items[].quantity` | Min 1 \u00b7 max 99 (stepper) | Min 1 \u00b7 max 99 \u00b7 stock check | `INTEGER CHECK(> 0) NOT NULL` | 409 `INSUFFICIENT_STOCK` | FE team |\n| `promo_code` | Optional \u00b7 alphanumeric \u00b7 max 20 | Optional \u00b7 Catalog promo engine | `VARCHAR(20)` \u2014 no constraint | 409 `PROMO_CODE_INVALID` | BE team |\n| `currency_code` | Required \u00b7 from dropdown | Required \u00b7 in `['GBP','USD','EUR','AUD']` | `NOT NULL VARCHAR(3)` | FE dropdown prevents invalid | BE team |\n\n### Order mutation fields\n\n| Field | FE rule | API rule | DB constraint | Error surfaces | Owner |\n|-------|---------|----------|---------------|----------------|-------|\n| `status` (cancel) | Cancel shown only if `status IN ('pending','paid')` | Valid transitions enforced. See 11. | `ENUM NOT NULL` | 409 `ORDER_NOT_CANCELLABLE` | BE team |\n| `total_cents` | \u2014 (display only, never sent) | Computed server-side \u00b7 ignored if sent | `INTEGER CHECK(>=0) NOT NULL` | 500 if violated | BE team |\n| `discount_cents` | \u2014 (display only) | Computed by Catalog promo engine \u00b7 ignored if sent | `INTEGER DEFAULT 0 CHECK(>=0)` | 500 if violated | BE team |\n\n---\n\n## Quick reference\n\n**What it is:** A per-field table showing exactly where each field is validated across FE, API, and DB layers, what error surfaces to the user,\u2026\n\n**When to use:** Any service with all three: a FE form layer, a BE API, and a database.\n\n**Skip / reduce if:** Skip if: no FE layer, or trivially simple data with no user input.\n\n**Cross-references:** 11 Business rules \u00b7 13 Data model \u00b7 14 API surface\n\n---\n\n## Best practices\n\n- Use `\u2014` when a layer has no validation. Blank is ambiguous.\n- Fields validated only at DB level are highest risk \u2014 they produce 500s, not user messages.\n- Ownership column: decide who fixes cross-layer inconsistencies before the bug is filed.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 every layer is explicit, including the absence of validation**\n\n| Field | FE rule | API rule | DB constraint | Error surfaces | Owner |\n|-------|---------|----------|---------------|----------------|-------|\n| `promo_code` | Optional \u00b7 alphanumeric \u00b7 max 20 | Optional \u00b7 Catalog promo engine \u00b7 case-insensitive | `VARCHAR(20)` \u2014 no DB constraint | 409 `PROMO_CODE_INVALID` \u2192 inline below promo field | BE team |\n\n*Why good:* \"No DB constraint\" is explicit \u2014 not blank. The absence of validation at DB level is a deliberate call worth documenting, not an oversight.",
+  '11':"# 11 \u00b7 Business rules\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Medium\n**Mandatory trigger:** New domain constraint identified \u00b7 Bug fix reveals undocumented rule\n\n---\n\n## Review checklist\n\n- [ ] Every state machine covers all terminal states \u2014 no state without an exit or explicit terminal marker\n- [ ] Every rule has a rationale \u2014 \"business requirement\" is not a rationale\n- [ ] Every rule is falsifiable \u2014 \"handle correctly\" is not a rule\n- [ ] Owner column names who to ask when the rule needs to change\n- [ ] Diagrams match the code \u2014 state names and transitions are accurate\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n---\n\n## Quick reference\n\n**What it is:** Domain invariants expressed as diagrams \u2014 the \"why\" that code cannot explain itself.\n\n**When to use:** Any service with non-trivial domain logic. Review after every bug fix \u2014 the fix often reveals a rule that was never written down.\n\n**Skip / reduce if:** Skip if: pure CRUD with no domain logic, pass-through proxy.\n\n**Cross-references:** 10 Data validation map \u00b7 17 Trade-off\n\n---\n\n## Best practices\n\n- Prefer a diagram over prose \u2014 it communicates in one glance and is harder to misread.\n- Always include the rationale beneath each diagram \u2014 the rule without the why gets deleted in six months.\n- Each rule must be falsifiable \u2014 \"handle errors properly\" is not a business rule.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 rule is falsifiable and rationale survives a refactor**\n\n| Type | Rule | Rationale | Enforced in | Owner |\n|------|------|-----------|-------------|-------|\n| `Invariant` | Order can only be cancelled if `status` is `pending` or `paid`. `shipped` orders go through returns, not cancellation. | Once Warehouse confirms dispatch, the item is in transit. Cancellation creates a race condition with the carrier. | BE service layer + DB enum (invalid transitions \u2192 409) | BE (Platform) |\n\n*Why good:* The rationale explains *why* \u2014 not just *what*. Someone refactoring the status machine can't accidentally remove this rule without reading why it exists.",
+  '12':"# 12 \u00b7 Reliability & availability\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Heavy\n**Mandatory trigger:** SLO target changes \u00b7 New dependency added \u00b7 Capacity event \u00b7 Game day run\n\n---\n\n## Review checklist\n\n- [ ] SLOs were agreed by the team \u2014 not solo-authored\n- [ ] Every dependency in section 04 has a failure mode row here\n- [ ] Every failure mode has a specific recovery action \u2014 not \"investigate\" or \"fix it\"\n- [ ] RTO/RPO have been tested \u2014 unverified values are marked as untested\n- [ ] Game day log has a \"next scheduled\" entry\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### SLOs\n\n| SLO | Target | Current (30d) | How measured |\n|-----|--------|---------------|--------------|\n| Availability | 99.9% | 99.95% | % of minutes with successful `/health` across all instances |\n| Checkout success rate | 99.5% | 99.8% | % of `POST /orders` returning 2xx (excludes 4xx validation) |\n| p99 API latency | < 300ms | 218ms | At GCP Load Balancer \u2014 excludes webhooks |\n| p99 checkout latency | < 800ms | 640ms | `POST /orders` end-to-end including Stripe PI + Warehouse stock check |\n| Payment success rate | 99.9% | 99.92% | % of Stripe payment intents completing without retry |\n\n**Dashboard:** `console.cloud.google.com/monitoring/dashboards/acme-oms`\n**Error budget:** PagerDuty auto-escalates when 30-day budget drops below 50%\n\n---\n\n## Quick reference\n\n**What it is:** Four angles of reliability: SLOs with capacity thresholds, a failure mode catalogue per dependency, degradation patterns, and r\u2026\n\n**When to use:** Any production customer-facing service. Required for handoffs and new engineer onboarding \u2014 new people must understand what \"down\" looks like before touching production.\n\n**Skip / reduce if:** Reduce for internal tooling. Failure modes are still valuable for low-criticality services.\n\n**Cross-references:** 04 System context (every dependency needs a row here) \u00b7 09 Error handling \u00b7 15 Background jobs & caching \u00b7 16 Testing strategy (game day is a form of testing)\n\n---\n\n## Best practices\n\n- SLOs: agree with the team \u2014 a solo-authored SLO is a target, not a commitment.\n- Failure modes: write for someone who has never seen this system, at 2am.\n- Every dependency in 04 must have a failure mode row. Add both at the same time.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 failure mode is actionable at 2am**\n\n| Failure | Customer impact | Behaviour | Recovery action |\n|---------|----------------|-----------|-----------------|\n| Stripe API down | New checkouts fail. Paid orders unaffected. | Circuit breaker opens after 5 failures in 30s. `POST /orders` \u2192 503. | Check `status.stripe.com`. Circuit breaker auto-resets on recovery. Webhook backlog auto-delivered. |\n\n*Why good:* On-call knows what's broken, what's safe, and exactly what to do \u2014 without reading code or pinging the team.",
+  '13':"# 13 \u00b7 Data model\n\n**Layer:** Backend \u00b7 **Effort:** Heavy\n**Mandatory trigger:** Schema migration \u00b7 Index added or removed \u00b7 New entity\n\n---\n\n## Review checklist\n\n- [ ] Every column has at least one constraint documented \u2014 no rows with blank Constraints\n- [ ] Every non-obvious index documents the query it serves\n- [ ] Every relationship has its cascade rule noted\n- [ ] ERD is auto-generated from migrations or was manually updated in this PR\n- [ ] Every entity in the system context (section 04) has a corresponding table or is explicitly excluded\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### ERD visual\n\n```\n[Insert ERD \u2014 store as /docs/erd.png \u00b7 auto-generate from migrations in CI]\n\nEntity summary:\n  customers \u2500\u2500< orders \u2500\u2500< order_items >\u2500\u2500 products\n                  \u2502\n                  \u2514\u2500\u2500< payments\n                  \u2514\u2500\u2500< order_addresses\n                  \u2514\u2500\u2500< returns\n```\n\n---\n\n## Quick reference\n\n**What it is:** Four views of the database: ERD, per-table field reference with constraints, relationship table with cascade rules, and an inde\u2026\n\n**When to use:** Any service with persistent storage. The ERD is the canonical truth \u2014 if code and ERD disagree, the ERD is wrong.\n\n**Skip / reduce if:** Skip if: stateless service, pure proxy, no persistent storage.\n\n**Cross-references:** 10 Data validation map \u00b7 11 Business rules \u00b7 15 Background jobs & caching\n\n---\n\n## Best practices\n\n- ERD: auto-generate from migrations in CI \u2014 otherwise it drifts.\n- Constraints column: include CHECK constraints \u2014 they encode business rules.\n- Indexes: document the query each index serves \u2014 \"why does this exist?\" must be answerable.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 index documents the query it serves**\n\n| Index name | Table | Purpose & query served | Type |\n|------------|-------|------------------------|------|\n| `idx_orders_pending_stale` | `orders` | Partial index \u2014 `WHERE status = 'pending'` only. `stale-order-cleanup` cron without scanning non-pending rows. | Partial B-tree |\n\n*Why good:* Anyone reviewing this index knows exactly which query it was created for. If that cron is ever removed, the index can be safely dropped.",
+  '14':"# 14 \u00b7 API surface\n\n**Layer:** Backend \u00b7 **Effort:** Medium\n**Mandatory trigger:** New endpoint \u00b7 Auth change \u00b7 Breaking change planned\n\n---\n\n## Review checklist\n\n- [ ] Every endpoint is listed \u2014 nothing undocumented in the codebase\n- [ ] Every endpoint has a per-endpoint rate limit \u2014 global limits live in section 08\n- [ ] Breaking change definition is written and agreed before any breaking change is made\n- [ ] Deprecation log is up to date \u2014 no removed endpoints missing from the log\n- [ ] OpenAPI spec link resolves and is current\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Endpoints\n\n| Method | Path | Entity | Auth | Rate limit | Notes |\n|--------|------|--------|------|------------|-------|\n| `GET` | `/health` | \u2014 | None | Unlimited | Health check. Returns `{ status: \"ok\" }`. |\n| `GET` | `/account/orders` | `orders` | JWT (customer) | 100/min | Paginated order list. Filters: `?status=`, `?page=`, `?limit=`. |\n| `GET` | `/account/orders/:id` | `orders + items + address` | JWT + owner | 200/min | Full order detail. |\n| `POST` | `/orders` | `orders + items + address + payments` | JWT (customer) | 10/min | Checkout. Atomic \u2014 rolls back on any failure. |\n| `POST` | `/orders/:id/cancel` | `orders` | JWT + owner | 20/min | Cancels if `pending` or `paid`. 409 otherwise. |\n| `POST` | `/orders/:id/returns` | `returns` | JWT + owner | 5/min | Initiates return. `status` must be `delivered`. |\n| `GET` | `/admin/orders` | `orders` | JWT (ops or admin) | 200/min | All orders, paginated. Filters: `?status=`, `?customer_id=`, `?date_range=`. |\n| `PUT` | `/admin/orders/:id/status` | `orders` | JWT (ops or admin) | 60/min | Updates status. Transition map enforced \u2014 see 11. |\n| `POST` | `/admin/orders/:id/refund` | `orders + payments` | JWT (admin only) | 10/min | Full or partial Stripe refund. Logged to `#admin-audit`. |\n| `DELETE` | `/admin/orders/:id` | `orders` | JWT (admin only) | 5/min | Hard delete. Irreversible. Test data cleanup only. |\n| `POST` | `/webhooks/stripe` | `orders + payments` | Stripe-Signature | Unlimited | Handles Stripe events. Idempotent on `payment_intent_id`. |\n\n**OpenAPI spec \u2192** `github.com/acme/oms/blob/main/docs/openapi.yaml`\n**Postman collection \u2192** `confluence.acme.com/oms/api-collection`\n\n---\n\n## Quick reference\n\n**What it is:** The API contract \u2014 all endpoints with method, path, entity, auth, and per-endpoint rate limits. Plus a versioning policy and de\u2026\n\n**When to use:** Any service exposing HTTP endpoints. Versioning & deprecation section mandatory once the API has more than one consumer.\n\n**Skip / reduce if:** Skip if: event-driven only service with no HTTP surface.\n\n**Cross-references:** 07 AuthN & AuthZ enforcement \u00b7 08 Rate limiting (global limits) \u00b7 10 Data validation map\n\n---\n\n## Best practices\n\n- This is the contract \u2014 link to OpenAPI for shapes. Don't duplicate them here.\n- Per-endpoint rate limits are distinct from global limits in 08 \u2014 document both.\n- Breaking change definition must be written before the first breaking change \u2014 not during it.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 breaking change definition is written before it's needed**\n\n> **Breaking change definition:** any change requiring a consumer to update their integration \u2014 removing or renaming a response field, changing a field's type, removing an enum value, removing or renaming an endpoint, changing auth requirements, changing required/optional status.\n\n*Why good:* Written upfront, before the first breaking change. When the moment arrives, there's no debate about whether something is breaking.",
+  '15':"# 15 \u00b7 Background jobs & caching\n\n**Layer:** Backend \u00b7 **Effort:** Medium\n**Mandatory trigger:** New job added \u00b7 Cache strategy changes \u00b7 TTL adjusted\n\n---\n\n## Review checklist\n\n- [ ] Every background job has a max duration \u2014 no blank or \"\u2014\" entries\n- [ ] Every queue job documents its idempotency guarantee and the check mechanism\n- [ ] DLQ policy has a failure count threshold and alert destination\n- [ ] Caching strategy explicitly lists what must never be cached (PII, financial amounts)\n- [ ] Every cache entry has an invalidation rule \u2014 TTL-only is a valid answer if intentional\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n### Async & background jobs\n\n**Queue:** Bull v4 (Redis-backed) \u00b7 **Dashboard:** `localhost:3002/queues` (dev) \u00b7 `admin.acme.com/queues` (prod)\n**DLQ policy:** PagerDuty alert after 5 failures \u00b7 runbook: `confluence.acme.com/oms/runbooks/job-dlq`\n\n| Job name | Type | What it does | Trigger | Max duration | Retry policy |\n|----------|------|--------------|---------|--------------|-------------|\n| `order-fulfillment` | Queue | Sends order to Warehouse API. Idempotent on `order_id`. | Order \u2192 `paid` (Stripe webhook) | 30s | 3 retries \u00b7 1min, 5min, 15min \u00b7 DLQ after 3 |\n| `email-dispatch` | Queue | Sends transactional email via SendGrid (order and return lifecycle events). | Order/return status changes | 10s | 5 retries \u00b7 exponential backoff \u00b7 DLQ after 5 |\n| `return-refund` | Queue | Issues Stripe refund. Idempotent on `return_id`. P1 alert on DLQ (money involved). | `return.status` \u2192 `received` | 20s | 3 retries \u00b7 DLQ after 3 \u00b7 P1 immediately |\n| `stale-order-cleanup` | Cron | Cancels `pending` orders > 30 min old (abandoned checkouts). | `*/15 * * * *` | 2min | No retry. Alert if > 500 cancelled per run. |\n| `revenue-aggregation` | Cron | Aggregates prior day paid order totals into `daily_revenue_summaries`. Read-only \u2014 safe to re-run. | `0 2 * * *` (02:00 UTC) | 5min | No retry \u2014 re-run manually if needed. |\n| `warehouse-sync` | Cron | Polls Warehouse API and transitions order status accordingly. | `*/30 * * * *` | 3min | No retry. Alert if Warehouse API errors. |\n\n---\n\n## Quick reference\n\n**What it is:** Everything outside the HTTP request cycle: queued jobs and cron tasks with expected max durations, and a caching strategy with \u2026\n\n**When to use:** Any service with background jobs, queues, scheduled tasks, or a cache layer.\n\n**Skip / reduce if:** Skip if: purely synchronous request-response service with no jobs or caching.\n\n**Cross-references:** 12 Reliability \u2014 failure modes (jobs appear there too) \u00b7 09 Observability (DLQ alert thresholds) \u00b7 08 Security (never cache PII)\n\n---\n\n## Best practices\n\n- Max duration: if a job exceeds this, it's stuck \u2014 not just slow. Fill it for every job.\n- Caching: the \"never cache this\" list is as important as the \"cache this\" list.\n- For each cron: document what happens if it fails silently.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 job is idempotent and the check is documented**\n\n| Job name | Type | What it does | Trigger | Max duration | Retry policy |\n|----------|------|--------------|---------|--------------|-------------|\n| `order-fulfillment` | Queue | Sends order to Warehouse API. **Idempotent on `order_id`** \u2014 checks `order.status` before sending. If already `shipped`, job is a no-op. | Order \u2192 `paid` | 30s | 3 retries \u00b7 DLQ after 3 |\n\n*Why good:* The idempotency guarantee and the check mechanism are both documented. A retry after a crash won't ship a duplicate parcel.",
+  '16':"# 16 \u00b7 Testing strategy\n\n**Layer:** Cross-cutting \u00b7 **Effort:** Medium\n**Mandatory trigger:** New critical case identified \u00b7 CI gate changes\n\n---\n\n## Review checklist\n\n- [ ] Every critical case has a CI gate \u2014 \"warning only\" cases are intentional exceptions, not defaults\n- [ ] Coverage targets are per-concern, not a single global number\n- [ ] Test setup commands work from a fresh clone \u2014 verified, not just copied\n- [ ] Consumer contract tests are present if FE and BE are separate deployables\n- [ ] Financial or auth code has 100% branch coverage \u2014 not negotiable\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n**Local test setup:**\n```bash\ndocker compose up -d db    # test Postgres on :5433\nnpm run db:migrate:test\nnpm run db:seed:test        # 100 orders, 3 customers, 10 products\n```\n\n---\n\n## Quick reference\n\n**What it is:** The critical test cases that must be covered \u2014 grouped by concern. For each case: what's being verified, where the test lives, \u2026\n\n**When to use:** Any service in active development. Consumer contract coverage mandatory once FE and BE are separate deployables. Load coverage mandatory for any service with SLOs in 12.\n\n**Skip / reduce if:** Reduce for prototype code. Load and security coverage optional for low-criticality internal tools.\n\n**Cross-references:** 12 Reliability (SLOs and game day) \u00b7 08 Security \u00b7 05 FE architecture (performance budgets)\n\n---\n\n## Best practices\n\n- List cases, not tools. Tools change; the case that must pass doesn't.\n- Mark CI gate explicitly \u2014 a case without a gate is a suggestion, not a guarantee.\n- Commands must work from a fresh clone \u2014 test them after writing.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 test case is specific and has a real CI gate**\n\n| Case | Location | CI gate |\n|------|----------|---------|\n| `payment_intent.succeeded` received twice \u2014 no double charge (idempotency) | `test/webhooks/payment.test.ts` | Blocks PR |\n\n*Why good:* The case name describes exactly what's being verified. The CI gate is \"Blocks PR\" \u2014 not \"warning only.\" A developer cannot merge without this passing.",
+  '17':"# 17 \u00b7 Trade-off\n\n**Layer:** Shared \u00b7 **Effort:** Light\n**Mandatory trigger:** Architectural decision made or revisited\n\n---\n\n## Review checklist\n\n- [ ] Every entry has something in the \"Gave up\" column \u2014 a decision with no downside was not a real trade-off\n- [ ] Alternatives are specific \u2014 \"we considered MongoDB\" not \"we considered a document DB\"\n- [ ] \"Revisit when\" is filled for every entry \u2014 not left blank\n- [ ] New entries are at the top \u2014 newest first\n- [ ] Any decision that affects multiple sections has been cross-referenced\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n> Newest entries at the top. Every entry must name what was gained and what was given up.\n\n---\n\n### PostgreSQL over MongoDB for order storage\n\n| | |\n|--|--|\n| **Tags** | `DB` |\n| **Status** | `Decided` |\n| **Decided** | 2025-03-18 \u00b7 @jane.doe |\n\n| Alternatives considered | Why rejected |\n|------------------------|-------------|\n| MongoDB | Flexible document schema, but no ACID transactions \u2014 double-charging on a failed transaction is unacceptable |\n| DynamoDB | Low-latency key-value, but complex query patterns (status filters, date ranges, joins) are expensive or impossible |\n\n| Gained | Gave up |\n|--------|---------|\n| Transactional integrity \u2014 all-or-nothing writes across order, payment, and address | Horizontal write scaling \u2014 sharding PostgreSQL is complex at our current scale |\n| Complex query support \u2014 status filters, date ranges, joins without an extra service | Schema flexibility for product variants |\n\n**Revisit when:** Write throughput consistently exceeds PostgreSQL's vertical scaling ceiling, or product variant complexity bleeds into the order model.\n\n---\n\n### Prices stored as integer cents (e.g. \u00a312.99 = `1299`)\n\n| | |\n|--|--|\n| **Tags** | `DB` \u00b7 `Pricing` |\n| **Status** | `Decided` \u2014 permanent without Finance sign-off |\n| **Decided** | 2025-03-18 \u00b7 @ali.h |\n\n| Alternatives considered | Why rejected |\n|------------------------|-------------|\n| `DECIMAL(10,2)` in PostgreSQL | Application-layer arithmetic still risks precision loss if not consistently handled |\n| `FLOAT` | Accumulates rounding errors \u2014 `0.1 + 0.2 = 0.30000000000000004` across multi-item orders |\n\n| Gained | Gave up |\n|--------|---------|\n| Zero rounding errors in financial calculations | Human-readable DB values \u2014 requires mental conversion when debugging |\n| Consistency with Stripe's API (also uses integer smallest-unit) | Fractional pricing support \u2014 not needed, but impossible without a full migration |\n\n**Revisit when:** A pricing requirement emerges that can't be expressed in integer cents. Requires Finance sign-off and a full migration plan.\n\n---\n\n## Quick reference\n\n**What it is:** A structured record of architectural decisions \u2014 what was decided, what was rejected, what was gained and given up, and when to\u2026\n\n**When to use:** Any project with architectural decisions. Even 3 documented decisions prevents 3 repeat debates. Update when a decision is revisited, not just when it's made.\n\n**Skip / reduce if:** No skip condition.\n\n**Cross-references:** 11 Business rules \u00b7 03 Goals & non-goals\n\n---\n\n## Best practices\n\n- \"Revisit when\" is more important than the decision \u2014 context changes.\n- Alternatives must be specific: \"we considered MongoDB\" not \"we considered NoSQL.\"\n- Gained and gave up must both be named \u2014 a decision with no downside wasn't a real trade-off.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 \"gave up\" column is honest**\n\n| Gained | Gave up |\n|--------|---------|\n| Zero rounding errors in financial calculations | Human-readable DB values \u2014 requires mental conversion when debugging (`1299` \u2192 `\u00a312.99`) |\n| Consistency with Stripe's API (also uses integer smallest-unit) | Fractional pricing support \u2014 not needed, but impossible without a full migration |\n\n*Why good:* The downside is real and named. It prevents the decision from looking like a free lunch. A future engineer who needs fractional pricing knows this is a migration, not a config change.",
+  '18':"# 18 \u00b7 Terminology\n\n**Layer:** Shared \u00b7 **Effort:** Light\n**Mandatory trigger:** Ambiguous term identified\n\n---\n\n## Review checklist\n\n- [ ] Every term distinguishes itself from its nearest neighbour \u2014 not a circular definition\n- [ ] Terms that mean different things to engineering vs the business are called out\n- [ ] Any term used ambiguously in a recent PR, meeting, or code review is added\n- [ ] Definitions are precise enough to resolve a real ambiguity \u2014 not so long they require reading twice\n\n---\n\n## Template \u2014 Order Management Service (e-commerce)\n\n| Term | Definition |\n|------|------------|\n| **Order** | A confirmed purchase \u2014 exists after checkout is submitted and payment is initiated. Not the same as a cart. |\n| **Cart** | Items a customer is considering. Client-state only \u2014 never persisted to OMS. Converted to an order on checkout. |\n| **Checkout** | The 3-step flow: shipping address \u2192 payment \u2192 confirm. Refers to the flow, not the confirmation page. |\n| **Order item** | A single product line in an order. Multiple units of the same SKU = one row with `quantity > 1`. |\n| **Fulfillment** | Picking, packing, and shipping. Owned by Warehouse API. OMS reads status \u2014 never writes. |\n| **Return** | Post-delivery request for a refund. Applies to `delivered` orders only. Distinct from a cancellation (`pending`/`paid`). |\n| **Payment intent (PI)** | Stripe's object for a payment attempt. One PI per order (`pi_xxxxx`). OMS never references Stripe Charges directly. |\n| **Ops dashboard** | Internal tool for Ops and Support teams. Lives at `/admin` \u2014 not visible to customers. |\n| **Breaking change** | Any API change requiring consumers to update their integration. See 01 and 14. |\n| **Cents** | All monetary amounts are integers in the smallest currency unit \u2014 \u00a312.99 = `1299`. Display formatting is presentation-layer only. See 17. |\n\n---\n\n## Quick reference\n\n**What it is:** Domain term definitions \u2014 what words mean in this specific context. The single reference when a term is used ambiguously in a m\u2026\n\n**When to use:** Any project with domain-specific language. New engineers should read this before writing any code.\n\n**Skip / reduce if:** No skip condition. Even 5 terms prevents 5 repeated questions.\n\n---\n\n## Best practices\n\n- Call out where a term means different things to engineering vs. the business.\n- Keep definitions precise enough to resolve an ambiguity, not so long they require reading twice.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 definition distinguishes the term from its nearest neighbour**\n\n| Term | Definition |\n|------|------------|\n| **Return** | A post-delivery request to send items back for a refund. Applies to `delivered` orders only. **Not the same as a cancellation** \u2014 cancellations apply to `pending` or `paid` orders before shipping. |\n\n*Why good:* The definition tells you what Return is *and* what it isn't. Engineers who confuse the two will build wrong state machines, wrong UI, and wrong error messages.",
+};
+
+function sectionTemplate(s,ctx){
+const templates={
+    '01':`## Version history
+
+**Mandatory triggers:** ☐ Schema migration merged · ☐ Major feature launch · ☐ Security policy change
+> Tick the box for each trigger type this document has ever included.
+
+| Version | Date | Author | What changed | Trigger | Breaking? |
+|---------|------|--------|--------------|---------|----------|
+| v1.0 | ${ctx.today} | ${ctx.owner} | Initial document | Initial | N/A |`,
+
+    '02':`## Review history
+
+**Doc health:** \`✓ Up to date\` / \`⚠ Needs update\`
+**Last reviewed:** ${ctx.today}
+**Next review due:** _on next schema migration or feature launch_
+
+| Date | Reviewer | Status | Notes |
+|------|----------|--------|-------|
+| ${ctx.today} | ${ctx.owner} | Approved | First review at initial release. All sections verified against codebase. |`,
+
+    '03':`## Project snapshot
+
+| Field | Value |
+|-------|-------|
+| **Service name** | ${ctx.name} |
+| **One-liner** | ${ctx.desc} |
+| **Status** | \`Draft\` |
+| **Owner** | ${ctx.owner} |
+| **Repo** | \`${ctx.repoPrefix}${ctx.name.toLowerCase().replace(/\\s+/g,'-')}\` |
+| **Runbook** | ${ctx.runbookBase?'\`'+ctx.runbookBase+ctx.name.toLowerCase().replace(/\\s+/g,'-')+'/runbook\`':'_link_'} |
+| **Last updated** | ${ctx.today} |
+
+**Tech stack:**
+${ctx.techStackLines}
+
+### Goals & non-goals
+
+**Goals**
+- _What must this service do that would constitute a P1 if it stopped working?_
+
+**Non-goals**
+- _What do people assume this service does, but it does not? Name the team that owns it._
+
+### Functional requirements
+
+| Requirement | Status | Enforced in |
+|-------------|--------|-------------|
+| _What user-facing flow depends on this?_ | Met | _Which file / handler enforces it?_ |
+| _What is explicitly out of scope for this release?_ | Not yet | _Planned — which version?_ |
+
+### Infra & environments
+
+| Environment | URL | Deployment strategy | Notes |
+|-------------|-----|---------------------|-------|
+| Production | _url_ | _Regional / multi-region / single instance_ | |
+| Staging | _url_ | _Single region · fixed instance_ | Mirrors prod schema |
+| Dev | \`localhost:PORT\` | Local only | Docker Compose |
+
+### Deploy & rollback
+
+> Full deployment strategy, pipeline stages, and rollback procedures belong in the runbook — not here.
+
+| Resource | Link |
+|----------|------|
+| Deploy & rollback runbook | _link_ |
+| CI/CD pipeline config | _link_ |`,
+
+    '04':`## System context
+
+### System boundary diagram
+
+\`\`\`
+[Insert diagram — draw.io, Mermaid, or image]
+\`\`\`
+
+### External dependencies
+
+> Every row here must have a matching row in 12 Failure modes.
+
+| System | Owner | Data exchanged | If it's down |
+|--------|-------|----------------|--------------|
+| _FE app_ | FE team | _What data flows between them?_ | _What breaks for the user if this is down?_ |
+| _Auth service_ | Identity team | JWT public key (JWKS) | _How long before auth fails? Is there a grace period?_ |
+| _External API_ | _Vendor / team name_ | _What does this service send or receive?_ | _What user action fails if this is down?_ |`,
+
+    '07':`## AuthN & AuthZ
+
+### FE token flow
+
+| Concern | Implementation |
+|---------|----------------|
+| Token storage | Access token in memory only. Refresh token in \`httpOnly Secure\` cookie. **Never \`localStorage\`** — XSS would expose the token. |
+| Token refresh | Interceptor catches 401, refreshes silently, retries once. On second 401 → clear auth store, redirect to \`/login\`. |
+| Protected routes | \`<AuthGuard>\` HOC. Redirects to \`/login\` if unauthenticated. Renders skeleton while auth resolves. |
+| Admin routes | \`<AdminGuard>\`. Shows 403 page if authenticated but not admin — does not redirect to login. |
+
+### BE enforcement
+
+| Concern | Implementation |
+|---------|----------------|
+| Middleware | \`authMiddleware\` on all routes except \`/webhooks/*\` and \`/health\`. |
+| Token issuer | _Auth service issues. This service validates only. Public key cached N hr._ |
+| Owner check | Resource reads/mutations verify \`resource.owner_id === req.user.id\`. Returns 403 (not 404) — 404 leaks existence. |
+
+### Roles & permissions
+
+| Role | Permissions | Assigned by |
+|------|-------------|-------------|
+| \`user\` | _Core user permissions_ | Automatically on signup |
+| \`admin\` | All user permissions + _admin actions_ | Engineering leads only |`,
+
+    '08':`## Security
+
+### Secrets & config
+
+> Never log secrets, tokens, or PII. Log structured IDs only.
+
+| Secret / config | Storage & access | Rotation |
+|-----------------|------------------|----------|
+| \`API_SECRET_KEY\` | _Secret Manager · injected at deploy · never hardcoded_ | Annual + on staff departure |
+| \`DATABASE_URL\` | _Secret Manager · service account only · no human access_ | Quarterly |
+| \`JWT_PUBLIC_KEY\` | Fetched from Auth JWKS at startup · memory only | Auth service manages — re-fetch on expiry |
+
+### Surface hardening
+
+| Control | Implementation | Status |
+|---------|----------------|--------|
+| CORS | Allowlist specific origins. No wildcard in prod. | _Enforced / Pending_ |
+| Rate limiting | Public: _N_/min per IP. Authenticated: _N_/min per user. | _Enforced / Pending_ |
+| HTTPS only | HTTP → HTTPS at load balancer. HSTS set. | _Enforced / Pending_ |
+| Input sanitisation | All request bodies validated via schema before handlers. | _Enforced / Pending_ |
+
+### Data classification
+
+| Data | Class | Where stored | In logs? |
+|------|-------|--------------|----------|
+| User email | PII | DB · encrypted at rest | Never — use \`user_id\` |
+| _Sensitive field_ | Sensitive | _Where_ | Never |
+| IDs, status, timestamps | Internal | DB · cache · logs | Yes |
+
+**Retention:** PII → _N_ years · App logs → 90 days · DB backups → 30 days rolling
+
+### Audit & compliance
+
+| Concern | Implementation |
+|---------|----------------|
+| Audit log | All writes emit to \`audit_log\`: \`actor_id\`, \`action\`, \`resource_id\`, \`before_state\`, \`after_state\`, \`timestamp\` |
+| GDPR erasure | \`DELETE /account\` anonymises PII. Records retained but unlinked from user. |`,
+
+    '09':`## Error handling
+
+### FE patterns
+
+| Error type | Pattern | Notes |
+|------------|---------|-------|
+| Form validation | Inline below each invalid field | Never toast. Scroll to first error on submit. |
+| Network failure | Persistent toast + "Retry" button | Show after retries exhausted. Dismiss on success. |
+| Component crash | Error boundary — full-page message | "Something went wrong." + "Refresh" CTA. |
+| Action failure | Toast — auto-dismiss _N_ s | Specific message + support link. |
+
+### BE error codes
+
+| HTTP | Code | FE handling |
+|------|------|-------------|
+| 400 | \`VALIDATION_ERROR\` | \`errors: [{ field, message }]\`. Map each to its form field. |
+| 401 | \`TOKEN_EXPIRED\` / \`TOKEN_INVALID\` | Expired: silent refresh + retry once. Invalid: no retry. Both → clear auth, redirect to \`/login\`. |
+| 403 | \`FORBIDDEN\` | "You don't have permission to do this." Never generic. |
+| 409 | \`_CONFLICT_CODE_\` | _Domain-specific message inline near the affected element._ |
+| 500 | \`INTERNAL_ERROR\` | Generic toast. Log \`traceId\`. Never expose stack trace. |
+
+### Response tiers
+
+| Severity | Definition | Response time | Escalation |
+|----------|------------|---------------|------------|
+| P1 | Core flow down, breach suspected | Immediate — page on-call | On-call → Lead → Director (15 min) |
+| P2 | Degraded, high error rate | < 30 min | On-call → Lead |
+| P3 | Non-critical, workaround exists | < 4 hr | Slack \`#incidents\` |
+| P4 | Cosmetic, no data at risk | Next business day | Create ticket |
+
+### Observability
+
+| Alert | Threshold | Severity | Playbook |
+|-------|-----------|----------|---------|
+| High 5xx error rate | > 1% over 5 min | P1–P2 | \`runbooks/high-error-rate\` |
+| High API latency | p99 > _N_ ms over 5 min | P2 | \`runbooks/high-latency\` |
+| Dead-letter queue | Any message in DLQ | P2 | \`runbooks/job-dlq\` |`,
+
+    '10':`## Data validation map
+
+> \`—\` means no validation at that layer. Never leave cells blank.
+> **Owner:** who fixes a cross-layer inconsistency for this field.
+
+| Field | FE rule | API rule | DB constraint | Error surfaces | Owner |
+|-------|---------|----------|---------------|----------------|-------|
+| \`email\` | Required · format · max 255 | Required · normalised · unique check | \`UNIQUE NOT NULL VARCHAR(255)\` | Inline: "Please enter a valid email" | FE team |
+| \`_text_field_\` | Required · max _N_ chars | Required · max _N_ · sanitised | \`NOT NULL VARCHAR(N)\` | Inline below field | FE team |
+| \`status\` (mutation) | UI shows valid options only | Valid transitions enforced. See 11. | \`ENUM NOT NULL\` | 409 \`_INVALID_TRANSITION_\` | BE team |
+| \`total_amount\` | — (displayed, never sent) | Computed server-side · never trusted from client | \`CHECK(>= 0) NOT NULL\` | 500 if violated | BE team |`,
+
+    '11':`## Business rules
+
+### Status state machine
+
+\`\`\`mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> pending
+    pending --> active
+    active --> completed
+    pending --> cancelled : cancel
+    active --> cancelled : cancel
+    completed --> [*]
+    cancelled --> [*]
+\`\`\`
+
+> _Replace with your actual state machine. Add transition labels and terminal states._
+
+### Rules
+
+**Types:** \`Invariant\` · \`Pricing\` · \`Auth\` · \`Retry\` · \`Async\` · \`Security\`
+
+| Type | Rule | Rationale | Enforced in | Owner |
+|------|------|-----------|-------------|-------|
+| \`Invariant\` | _Resource can only be cancelled if status is pending or active._ | _Why — what breaks if violated._ | BE service layer + state machine | BE |
+| \`Auth\` | Users may only read or mutate their own resources. Returns 403 (not 404). | Data isolation. 404 leaks existence. | BE \`authMiddleware\` + \`ownerCheck\` | BE |
+| \`Security\` | PII must never appear in logs or error messages. | GDPR. Logged PII creates an uncontrolled secondary store. | BE logging middleware | BE |`,
+
+    '12':`## Reliability & availability
+
+### SLOs
+
+| SLO | Target | Current (30d) | How measured |
+|-----|--------|---------------|--------------|
+| Availability | 99.9% | | % of minutes with successful \`/health\` |
+| p99 API latency | < _N_ ms | | At load balancer |
+| Core flow success rate | _N_% | | % of primary requests returning 2xx |
+
+**Dashboard:** _link_
+
+### Capacity planning thresholds
+
+| Metric | Current peak | Action threshold | Action required |
+|--------|-------------|-----------------|------------------|
+| Request rate | _N_/min | > _N_/min for 10+ min | Scale-out review |
+| DB connection pool | _N_% avg | > 80% for 5+ min | Review slow queries + replica |
+
+### Failure modes
+
+| Failure | Customer impact | Behaviour | Recovery action |
+|---------|----------------|-----------|------------------|
+| Primary DB down | All writes fail. Reads may partially succeed. | HA auto-failover. Recovery: 45–90s. | P1 alert. Check console. Run \`runbooks/db-failover\`. |
+| _External API_ down | _Impact on users_ | Circuit breaker opens. Requests fail fast. | Page _@team_. Auto-recovers on API recovery. |
+
+### Degradation strategy
+
+| Pattern | Applied to | Configuration |
+|---------|------------|---------------|
+| Circuit breaker | _External APIs_ | Open after _N_ failures in _N_ s. Auto-reset on recovery. |
+| Retry with backoff | All outbound HTTP | 3 retries · 100ms, 300ms, 900ms · 4xx never retried. |
+| Graceful shutdown | Service process | SIGTERM → drain in-flight → close DB pool → exit 0 |
+
+### Recovery & backup
+
+| Concern | Implementation |
+|---------|----------------|
+| DB backups | _Daily snapshot · N-day retention · point-in-time recovery_ |
+| RTO | < _N_ hr full restore · < _N_ s HA failover |
+| RPO | < _N_ min point-in-time recovery |
+| Restore procedure | _link_ · Last tested: _date_ |`,
+
+    '13':`## Data model
+
+### ERD visual
+
+\`\`\`
+[Insert ERD — dbdiagram.io, Mermaid erDiagram, or image]
+Store as /docs/erd.png · auto-generate from migrations in CI
+\`\`\`
+
+Entity summary:
+\`\`\`
+users ──< resources ──< resource_items
+\`\`\`
+
+### Field reference
+
+**\`users\`**
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| \`id\` | \`uuid\` | Primary key | PK · DEFAULT gen_random_uuid() |
+| \`email\` | \`varchar(255)\` | Login email · stored lowercase | UNIQUE · NOT NULL |
+| \`created_at\` | \`timestamptz\` | Account creation time | NOT NULL · DEFAULT now() |
+| \`deleted_at\` | \`timestamptz\` | Soft-delete for GDPR erasure | NULLABLE |
+
+**\`resources\`** _(replace with your main entity)_
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| \`id\` | \`uuid\` | Primary key | PK · DEFAULT gen_random_uuid() |
+| \`user_id\` | \`uuid\` | References \`users.id\` | FK · NOT NULL |
+| \`status\` | \`resource_status\` | Lifecycle state | NOT NULL · ENUM |
+| \`created_at\` | \`timestamptz\` | Creation time | NOT NULL · DEFAULT now() |
+| \`updated_at\` | \`timestamptz\` | Last change | NOT NULL · DEFAULT now() |
+
+### Relationships
+
+| From | Relation | To | Notes |
+|------|----------|----|-------|
+| \`users\` | 1 → N | \`resources\` | One user, many resources |
+| \`resources\` | 1 → N | \`resource_items\` | \`ON DELETE CASCADE\` |
+
+### Index strategy
+
+> PK indexes are automatic — omitted. Only non-obvious indexes listed.
+
+| Index name | Table | Purpose & query served | Type |
+|------------|-------|------------------------|------|
+| \`idx_resources_user_id\` | \`resources\` | Fetch all resources for a user | B-tree |
+| \`idx_resources_status\` | \`resources\` | Status-filtered queries | B-tree |`,
+
+    '14':`## API surface
+
+### Endpoints
+
+| Method | Path | Entity | Auth | Rate limit | Notes |
+|--------|------|--------|------|------------|-------|
+| \`GET\` | \`/health\` | — | None | Unlimited | Health check. Returns \`{ status: "ok" }\`. |
+| \`GET\` | \`/resources\` | \`resources\` | JWT | 100/min | Paginated list. Supports \`?status=\`, \`?page=\`. |
+| \`POST\` | \`/resources\` | \`resources\` | JWT | 10/min | Create resource. |
+| \`GET\` | \`/resources/:id\` | \`resources\` | JWT + owner | 200/min | Full detail. |
+| \`DELETE\` | \`/resources/:id\` | \`resources\` | JWT (admin) | 5/min | Hard delete. Irreversible. |
+
+**OpenAPI spec →** \`docs/openapi.yaml\`
+
+### Versioning & deprecation policy
+
+**Current version:** v1 · communicated via \`Accept-Version: 1\` header
+**Consumers:** _list consumers_
+
+**Breaking change definition** — any change requiring a consumer to update:
+- Removing or renaming a response field
+- Changing a field's type or removing an enum value
+- Removing or renaming an endpoint
+
+**Breaking change process:**
+1. Announce in \`#api-changes\`
+2. Deploy new alongside old (both active)
+3. Old returns \`Deprecation: true\` and \`Sunset: {date}\` headers
+4. 90-day window external · 30-day internal
+5. Remove after sunset. Log below.
+
+**Deprecation log**
+
+| Endpoint / field | What changed | Deprecated | Sunset | Removed |
+|-----------------|-------------|------------|--------|----------|
+| _No entries yet_ | | | | |`,
+
+    '15':`## Background jobs & caching
+
+**MQ tool:** _e.g. NATS_ · **DLQ alert after:** 5 failures
+
+### Async & background jobs
+
+| Job name | Type | What it does | Trigger | Max duration | Retry policy |
+|----------|------|--------------|---------|--------------|-------------|
+| \`_resource-action_\` | Queue | _What it does. Idempotent on \`resource_id\`._ | On event | 30s | 3 retries · 1min, 5min, 15min · DLQ after 3 |
+| \`_cleanup_\` | Cron | _Cleans stale records. Logs to \`audit_log\`._ | \`*/15 * * * *\` | 2min | No retry — next run in 15 min |
+
+### Caching strategy
+
+> Never cache PII or financial amounts.
+
+| What's cached | Cache key | Where | TTL | Invalidation |
+|---------------|-----------|-------|-----|----------------|
+| Resource list | \`resources:list:{user_id}\` | Redis | 30s | Delete on any mutation for that user |
+| Auth public key | \`jwksCache\` | In-memory | 1hr | TTL only |
+| Static assets | Filename hash | CDN | 7 days | Content hash — automatic |`,
+
+    '16':`## Testing strategy
+
+**CI setup:**
+\`\`\`bash
+# Insert test environment setup commands
+\`\`\`
+
+### Core flow
+
+| Case | Location | CI gate |
+|------|----------|---------|
+| Full happy path: _describe end-to-end flow_ | \`e2e/happy-path.spec.ts\` | Merge to \`main\` |
+| _Critical mutation_ — success and failure cases | \`test/integration/\` | Blocks PR |
+| _Idempotency_ — duplicate request causes no double action | \`test/integration/\` | Blocks PR |
+
+### Auth & access control
+
+| Case | Location | CI gate |
+|------|----------|---------|
+| Unauthenticated request to protected route — 401 | \`test/integration/auth.test.ts\` | Blocks PR |
+| User cannot read or mutate another user's resource — 403, not 404 | \`test/integration/auth.test.ts\` | Blocks PR |
+| Role restrictions enforced on privileged actions | \`test/integration/auth.test.ts\` | Blocks PR |
+
+### Data integrity
+
+| Case | Location | CI gate |
+|------|----------|---------|
+| Schema shape and constraints after every migration | \`test/migrations/\` | Blocks PR (migration PRs) |
+| API contract — consumers not broken by changes | \`pact/\` | Blocks PR |
+
+### Frontend components
+
+**Coverage target:** 85% line on shared components · 100% on utility functions
+
+| Case | Location | CI gate |
+|------|----------|---------|
+| _Key shared component_ — renders all states correctly | \`src/components/_Component_.spec.tsx\` | Blocks PR |
+| Design system — no visual regression vs baseline | Chromatic diff | Manual — comment on PR |
+
+### Performance & load
+
+| Case | Target | Cadence | Location |
+|------|--------|---------|----------|
+| Sustained load: _N_ concurrent users | p99 < _N_ ms · error rate < 0.1% | Pre-release + quarterly | \`k6/scenarios/load.js\` |
+
+### Security
+
+| Case | CI gate |
+|------|--------|
+| Injection, XSS, hardcoded secrets | Blocks PR on High/Critical |
+| Known CVEs in direct dependencies | Blocks PR on High/Critical |
+| Secrets in git history or staged files | Blocks commit + PR |`,
+
+    '17':`## Trade-off
+
+> Newest entries at the top.
+
+---
+
+### _Decision title_
+
+| | |
+|--|--|
+| **Tags** | \`DB\` / \`FE\` / \`API\` / \`Infra\` |
+| **Status** | \`Decided\` · \`Proposed\` · \`Open\` |
+| **Decided** | ${ctx.today} · ${ctx.owner} |
+
+| Alternatives considered | Why rejected |
+|------------------------|-------------|
+| _What did you seriously consider? Be specific — name the library or pattern._ | _Why was this not the right fit for this context?_ |
+| _Second alternative_ | _What would have to be true for you to choose this instead?_ |
+
+| Gained | Gave up |
+|--------|--------|
+| _What problem does this solve that alternatives did not?_ | _What becomes harder or impossible because of this choice?_ |
+| _What else do we gain?_ | _What would make us regret this in 12 months?_ |
+
+**Revisit when:** _What change in requirements, scale, or team would make the current choice wrong?_`,
+
+    '18':`## Terminology
+
+| Term | Definition |
+|------|------------|
+| **_Resource_** | _What does this mean in our domain? How does it differ from how the word is used elsewhere in the codebase?_ |
+| **_Confusing pair_** | _Define both. What is the key difference? When does someone use A vs B?_ |
+| **Breaking change** | Any API change requiring a consumer to update their integration code. See 01 and 14. |`,
+  }
+  if(FE_TEMPLATES[s.n]){
+    const fwKey=feFramework==='nextjs'?'nextjs':feFramework==='angular'?'angular':'none';
+    const fwTpl=FE_TEMPLATES[s.n][fwKey];
+    if(fwTpl){
+      const resolved=fwTpl.replace(/\${ctx\.owner}/g,ctx.owner).replace(/\${ctx\.today}/g,ctx.today);
+      return resolveTech(resolved);
+    }
+  }
+  if(s.custom&&s.template)return`## ${s.name}\n\n${s.template}`;
+  const base=templates[s.n]||`## ${s.name}\n\n_Fill in this section._`;
+  return resolveTech(base);
+}
+
+const SETTINGS_KEY = 'dds_settings_v1';
+
+const DEFAULT_SETTINGS = {
+  owner:      '',
+  repoPrefix: 'github.com/org/',
+  runbookBase:'',
+  expLevel:   'senior',
+  sfLight:    0.3,  sfMedium: 0.6,  sfHeavy: 1.2,
+  separator:  '---',
+  techLine:   'on',
+  srLight:    0.5, srMedium: 1,   srHeavy: 2,
+  jrLight:    1,   jrMedium: 2,   jrHeavy: 4,
+};
+
+let CFG = {...DEFAULT_SETTINGS};
+
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if(raw) CFG = {...DEFAULT_SETTINGS, ...JSON.parse(raw)};
+  } catch(e){}
+  applySettings();
+}
+
+function applySettings(){
+  // Identity
+  if(CFG.owner && !document.getElementById('svc-owner').value)
+    document.getElementById('svc-owner').value = CFG.owner;
+
+  // Experience + output mode
+  setExperience(CFG.expLevel);
+
+  // Effort multipliers
+  EFFORT_HRS_STAFF.light   = CFG.sfLight;
+  EFFORT_HRS_STAFF.medium  = CFG.sfMedium;
+  EFFORT_HRS_STAFF.heavy   = CFG.sfHeavy;
+  EFFORT_HRS_SENIOR.light  = CFG.srLight;
+  EFFORT_HRS_SENIOR.medium = CFG.srMedium;
+  EFFORT_HRS_SENIOR.heavy  = CFG.srHeavy;
+  EFFORT_HRS_JUNIOR.light  = CFG.jrLight;
+  EFFORT_HRS_JUNIOR.medium = CFG.jrMedium;
+  EFFORT_HRS_JUNIOR.heavy  = CFG.jrHeavy;
+
+  updateSummary();
+}
+
+function openSettings(){
+  // Sync form to current CFG
+  document.getElementById('cfg-sf-light').value    = CFG.sfLight;
+  document.getElementById('cfg-sf-medium').value   = CFG.sfMedium;
+  document.getElementById('cfg-sf-heavy').value    = CFG.sfHeavy;
+  document.getElementById('cfg-sr-light').value    = CFG.srLight;
+  document.getElementById('cfg-sr-medium').value   = CFG.srMedium;
+  document.getElementById('cfg-sr-heavy').value    = CFG.srHeavy;
+  document.getElementById('cfg-jr-light').value    = CFG.jrLight;
+  document.getElementById('cfg-jr-medium').value   = CFG.jrMedium;
+  document.getElementById('cfg-jr-heavy').value    = CFG.jrHeavy;
+  document.getElementById('settings-drawer').classList.add('open');
+  document.getElementById('settings-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSettings(){
+  document.getElementById('settings-drawer').classList.remove('open');
+  document.getElementById('settings-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function cfgToggle(group, value, updateCfg=true){
+  // No toggle groups remain after settings simplification
+}
+
+function saveSettings(){
+  CFG.sfLight     = parseFloat(document.getElementById('cfg-sf-light').value)   || 0.3;
+  CFG.sfMedium    = parseFloat(document.getElementById('cfg-sf-medium').value)  || 0.6;
+  CFG.sfHeavy     = parseFloat(document.getElementById('cfg-sf-heavy').value)   || 1.2;
+  CFG.srLight     = parseFloat(document.getElementById('cfg-sr-light').value)  || 0.5;
+  CFG.srMedium    = parseFloat(document.getElementById('cfg-sr-medium').value) || 1;
+  CFG.srHeavy     = parseFloat(document.getElementById('cfg-sr-heavy').value)  || 2;
+  CFG.jrLight     = parseFloat(document.getElementById('cfg-jr-light').value)  || 1;
+  CFG.jrMedium    = parseFloat(document.getElementById('cfg-jr-medium').value) || 2;
+  CFG.jrHeavy     = parseFloat(document.getElementById('cfg-jr-heavy').value)  || 4;
+
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(CFG));
+  applySettings();
+
+  const saved = document.getElementById('cfg-saved');
+  saved.style.opacity = '1';
+  setTimeout(()=>{ saved.style.opacity='0'; }, 1800);
+}
+
+function resetSettings(){
+  CFG = {...DEFAULT_SETTINGS};
+  localStorage.removeItem(SETTINGS_KEY);
+  openSettings();
+  applySettings();
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSettings(); });
+document.addEventListener('DOMContentLoaded', loadSettings);
+function openGuide(n){
+  const raw=GUIDES[n];
+  if(!raw)return;
+  const md=typeof raw==='object'
+    ?(raw[feFramework]||raw.nextjs||Object.values(raw)[0])
+    :raw;
+  const sec=SECTIONS.find(s=>s.n===n);
+  document.getElementById('guide-title').textContent=(sec?sec.n+' · '+sec.name:'Section guide');
+  document.getElementById('guide-body').innerHTML=renderMd(md);
+  document.getElementById('guide-drawer').classList.add('open');
+  document.getElementById('guide-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeGuide(){
+  document.getElementById('guide-drawer').classList.remove('open');
+  document.getElementById('guide-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeGuide();});
+
+function renderMd(md){
+  let html=md
+    .replace(/```([\s\S]*?)```/g,(_,c)=>`<pre>${esc(c.trim())}</pre>`)
+    .replace(/`([^`]+)`/g,(_,c)=>`<code>${esc(c)}</code>`)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^---$/gm,'<hr>')
+    .replace(/^> (.+)$/gm,'<blockquote><p>$1</p></blockquote>')
+    .replace(/\n((?:\|.+\n)+)/g,(_,t)=>renderTable(t))
+    .replace(/^[-*] (.+)$/gm,'<li data-ul>$1</li>')
+    .replace(/(<li data-ul>.*<\/li>\n?)+/g,m=>`<ul>${m.replace(/ data-ul/g,'')}</ul>`)
+    .replace(/^\d+\. (.+)$/gm,'<li data-ol>$1</li>')
+    .replace(/(<li data-ol>.*<\/li>\n?)+/g,m=>`<ol>${m.replace(/ data-ol/g,'')}</ol>`)
+    .replace(/^(?!<[hulopbt]|\s*$)(.+)$/gm,'<p>$1</p>');
+  return html;
+}
+function renderTable(t){
+  const rows=t.trim().split('\n').filter(r=>r.includes('|'));
+  const sep=rows.findIndex(r=>/^[| -]+$/.test(r));
+  if(sep<0)return t;
+  const head=rows.slice(0,sep);
+  const body=rows.slice(sep+1);
+  const cells=r=>r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');
+  const hcells=r=>r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
+  return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table><thead>${head.map(r=>`<tr>${hcells(r)}</tr>`).join('')}</thead><tbody>${body.map(r=>`<tr>${cells(r)}</tr>`).join('')}</tbody></table></div>`;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function openGuide(n){
+  const raw=GUIDES[n];
+  if(!raw)return;
+  const md=typeof raw==='object'
+    ?(raw[feFramework]||raw.nextjs||Object.values(raw)[0])
+    :raw;
+  const sec=SECTIONS.find(s=>s.n===n);
+  document.getElementById('guide-title').textContent=(sec?sec.n+' · '+sec.name:'Section guide');
+  document.getElementById('guide-body').innerHTML=renderMd(md);
+  document.getElementById('guide-drawer').classList.add('open');
+  document.getElementById('guide-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeGuide(){
+  document.getElementById('guide-drawer').classList.remove('open');
+  document.getElementById('guide-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeGuide();closeSettings();}});
+
+function renderMd(md){
+  let html=md
+    .replace(/```([\s\S]*?)```/g,(_,c)=>`<pre>${esc(c.trim())}</pre>`)
+    .replace(/`([^`]+)`/g,(_,c)=>`<code>${esc(c)}</code>`)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^---$/gm,'<hr>')
+    .replace(/^> (.+)$/gm,'<blockquote><p>$1</p></blockquote>')
+    .replace(/\n((?:\|.+\n)+)/g,(_,t)=>renderTable(t))
+    .replace(/^[-*] (.+)$/gm,'<li data-ul>$1</li>')
+    .replace(/(<li data-ul>.*<\/li>\n?)+/g,m=>`<ul>${m.replace(/ data-ul/g,'')}</ul>`)
+    .replace(/^\d+\. (.+)$/gm,'<li data-ol>$1</li>')
+    .replace(/(<li data-ol>.*<\/li>\n?)+/g,m=>`<ol>${m.replace(/ data-ol/g,'')}</ol>`)
+    .replace(/^(?!<[hulopbt]|\s*$)(.+)$/gm,'<p>$1</p>');
+  return html;
+}
+function renderTable(t){
+  const rows=t.trim().split('\n').filter(r=>r.includes('|'));
+  const sep=rows.findIndex(r=>/^[| -]+$/.test(r));
+  if(sep<0)return t;
+  const head=rows.slice(0,sep);
+  const body=rows.slice(sep+1);
+  const cells=r=>r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');
+  const hcells=r=>r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
+  return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table><thead>${head.map(r=>`<tr>${hcells(r)}</tr>`).join('')}</thead><tbody>${body.map(r=>`<tr>${cells(r)}</tr>`).join('')}</tbody></table></div>`;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+</script>
+
+<div class="guide-overlay" id="guide-overlay" onclick="closeGuide()"></div>
+<div class="guide-drawer" id="guide-drawer">
+  <div class="guide-header">
+    <div class="guide-title" id="guide-title">Section guide</div>
+    <button class="guide-close" onclick="closeGuide()">✕</button>
+  </div>
+  <div class="guide-body" id="guide-body"></div>
+</div>
+
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettings()"></div>
+<div class="settings-drawer" id="settings-drawer">
+  <div class="settings-hdr">
+    <div class="settings-hdr-title">Settings</div>
+    <button class="settings-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-body">
+    <div class="settings-group">
+      <div class="settings-group-title">Effort multipliers (hours per section)</div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:16px;align-items:start">
+        <div></div>
+        <div class="effort-grid">
+          <div class="effort-cell"><div class="effort-cell-label">Light</div></div>
+          <div class="effort-cell"><div class="effort-cell-label">Medium</div></div>
+          <div class="effort-cell"><div class="effort-cell-label">Heavy</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);padding-top:8px">Staff</div>
+        <div class="effort-grid">
+          <div class="effort-cell"><input id="cfg-sf-light" type="number" min="0.1" max="24" step="0.1" value="0.3"></div>
+          <div class="effort-cell"><input id="cfg-sf-medium" type="number" min="0.1" max="24" step="0.1" value="0.6"></div>
+          <div class="effort-cell"><input id="cfg-sf-heavy" type="number" min="0.1" max="24" step="0.1" value="1.2"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);padding-top:8px">Senior</div>
+        <div class="effort-grid">
+          <div class="effort-cell"><input id="cfg-sr-light" type="number" min="0.1" max="24" step="0.5" value="0.5"></div>
+          <div class="effort-cell"><input id="cfg-sr-medium" type="number" min="0.1" max="24" step="0.5" value="1"></div>
+          <div class="effort-cell"><input id="cfg-sr-heavy" type="number" min="0.1" max="24" step="0.5" value="2"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);padding-top:8px">Junior</div>
+        <div class="effort-grid">
+          <div class="effort-cell"><input id="cfg-jr-light" type="number" min="0.1" max="24" step="0.5" value="1"></div>
+          <div class="effort-cell"><input id="cfg-jr-medium" type="number" min="0.1" max="24" step="0.5" value="2"></div>
+          <div class="effort-cell"><input id="cfg-jr-heavy" type="number" min="0.1" max="24" step="0.5" value="4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="settings-footer">
+    <button class="settings-save" onclick="saveSettings()">Save settings</button>
+    <button class="settings-reset" onclick="resetSettings()">Reset defaults</button>
+    <span class="settings-saved" id="cfg-saved">Saved</span>
+  </div>
+</div>
+</body>
+</html>
