@@ -305,6 +305,36 @@ select.cf-input{cursor:pointer}
 .settings-save{flex:1;padding:7px 0;font-size:12px;font-weight:500;border:none;border-radius:7px;background:var(--text);color:var(--bg);cursor:pointer;font-family:var(--font)}
 .settings-reset{padding:7px 14px;font-size:12px;border:0.5px solid var(--border2);border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
 .settings-saved{font-size:11px;color:var(--teal);align-self:center;opacity:0;transition:opacity .3s}
+
+/* MODE TOGGLE + FILL MODE */
+.mode-toggle{display:inline-flex;gap:2px;padding:3px;background:var(--bg3);border:0.5px solid var(--border);border-radius:9px;margin-bottom:20px}
+.mode-btn{font-size:12px;font-weight:500;padding:6px 14px;border:none;border-radius:7px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
+.mode-btn.active{background:var(--bg);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.fill-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;border:0.5px dashed var(--border2);border-radius:var(--rl);margin-bottom:20px}
+.fill-sec{border:0.5px solid var(--border);border-radius:var(--rl);padding:14px 16px;margin-bottom:14px;background:var(--bg2)}
+.fill-sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.fill-sec-num{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.fill-sec-name{font-size:14px;font-weight:600;color:var(--text);flex:1}
+.fill-guide,.fill-reset{font-size:11px;padding:3px 8px;border:0.5px solid var(--border2);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
+.fill-guide:hover,.fill-reset:hover{background:var(--bg3);color:var(--text)}
+.fill-block{margin-bottom:10px}
+.fill-text,.fill-code{width:100%;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg);color:var(--text2);font-family:var(--mono);font-size:12px;line-height:1.6;padding:8px 10px;resize:vertical;overflow:hidden;min-height:34px}
+.fill-code{background:var(--bg3)}
+.fill-text:focus,.fill-code:focus{outline:none;border-color:var(--border3);color:var(--text)}
+.ftable-wrap{overflow-x:auto;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg)}
+.ftable{border-collapse:collapse;width:100%;font-size:12px}
+.ftable th{background:var(--bg3);text-align:left;font-weight:600;color:var(--text2);padding:6px 8px;border-bottom:0.5px solid var(--border2);border-right:0.5px solid var(--border);white-space:nowrap;text-transform:none;letter-spacing:0;font-size:11px}
+.ftable td{border-bottom:0.5px solid var(--border);border-right:0.5px solid var(--border);padding:0;vertical-align:top}
+.ftable tr:last-child td{border-bottom:none}
+.ftable th.ftx,.ftable td.ftx{width:30px;text-align:center;border-right:none}
+.fcell{width:100%;min-width:130px;box-sizing:border-box;border:none;background:transparent;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.5;padding:6px 8px;resize:none;overflow:hidden}
+.fcell:focus{outline:none;background:var(--blue-bg)}
+.frow-del{border:none;background:transparent;color:var(--text4);cursor:pointer;font-size:11px;padding:4px}
+.frow-del:hover{color:var(--red)}
+.frow-add{margin-top:6px;font-size:11px;padding:4px 10px;border:0.5px dashed var(--border2);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
+.frow-add:hover{background:var(--bg3);color:var(--text)}
+.saved-pill{font-size:11px;color:var(--green-text);opacity:0;transition:opacity .2s;margin-left:4px;align-self:center}
+.saved-pill.show{opacity:1}
 </style>
 </head>
 <body>
@@ -608,16 +638,27 @@ select.cf-input{cursor:pointer}
 
   <!-- STEP 5: Generate -->
   <div class="step-content" id="step-5">
-    <div class="step-title">Generate your design document template</div>
-    <div class="step-desc">Your customised template is ready. Copy the markdown or download each section file.</div>
-    <div class="preview-header">
-      <div style="font-size:13px;font-weight:500">Sections included</div>
-      <div class="preview-stats">
-        <span class="stat" id="prev-count">0 sections</span>
-        <span class="stat" id="prev-effort">— effort</span>
-      </div>
+    <div class="step-title">Generate your design document</div>
+    <div class="step-desc">Copy a blank template to fill in elsewhere, or switch to <strong>Fill in here</strong> to complete it inline and export a finished draft.</div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-template" onclick="setOutputMode('template')">Blank template</button>
+      <button class="mode-btn" id="mode-fill" onclick="setOutputMode('fill')">Fill in here</button>
     </div>
-    <div class="preview-list" id="preview-list"></div>
+
+    <div id="prev-summary">
+      <div class="preview-header">
+        <div style="font-size:13px;font-weight:500">Sections included</div>
+        <div class="preview-stats">
+          <span class="stat" id="prev-count">0 sections</span>
+          <span class="stat" id="prev-effort">— effort</span>
+        </div>
+      </div>
+      <div class="preview-list" id="preview-list"></div>
+    </div>
+
+    <div id="fill-editor" style="display:none"></div>
+
     <div class="output-box">
       <div class="ob-header">
         <div class="ob-title" id="out-filename">design.md</div>
@@ -629,6 +670,13 @@ select.cf-input{cursor:pointer}
       <button class="btn btn-secondary" onclick="goToStep(4)">← Back</button>
       <button class="btn btn-success" onclick="downloadMarkdown()">⬇ Download .md file</button>
       <button class="btn btn-secondary" onclick="downloadPreRead()" style="margin-left:6px">⬇ Committee pre-read</button>
+    </div>
+    <div class="btn-row" id="draft-row" style="display:none;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="exportDraft()">⬇ Save draft (.json)</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('import-draft').click()">⬆ Load draft</button>
+      <input type="file" id="import-draft" accept="application/json,.json" style="display:none" onchange="importDraft(event)">
+      <button class="btn btn-secondary" onclick="resetFillAll()">Reset fields</button>
+      <span class="saved-pill" id="saved-pill">Autosaved ✓</span>
     </div>
   </div>
 
@@ -717,6 +765,8 @@ let currentStep=1;
 let selectedScenario=null;
 let checked=new Set(['01']);
 let scenarioRatings=[];
+let fillMode=false;
+let fillData={};
 
 function goToStep(n){
   if(n>currentStep && !document.getElementById('svc-name').value.trim()){
@@ -852,7 +902,8 @@ function renderPreview(){
       <div class="pl-file">${s.file}</div>
     </div>`).join('');
 
-  document.getElementById('out-body').innerHTML=renderOutput(generateMarkdown());
+  if(fillMode){ renderFillEditor(); document.getElementById('out-body').innerHTML=renderOutput(getFilledMarkdown()); }
+  else { document.getElementById('out-body').innerHTML=renderOutput(generateMarkdown()); }
 }
 
 
@@ -1291,7 +1342,7 @@ function escHtml(s){
 
 
 function copyMarkdown(){
-  const md=generateMarkdown();
+  const md=currentMarkdown();
   navigator.clipboard.writeText(md).then(()=>{
     const btn=document.getElementById('copy-md-btn');
     btn.textContent='Copied!';btn.classList.add('copied');
@@ -1300,7 +1351,7 @@ function copyMarkdown(){
 }
 
 function downloadMarkdown(){
-  const raw=generateMarkdown();
+  const raw=currentMarkdown();
   const md=raw;
   const name=document.getElementById('svc-name').value||'service';
   const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -1373,6 +1424,191 @@ function generateMarkdown(){
   return md.trim();
 }
 
+
+// ── Fill mode (edit sections inline → export a completed draft) ────────────────
+const FILL_KEY='dds_fill_v1';
+
+function val(id){ const el=document.getElementById(id); return el?el.value:''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=v||''; }
+
+function buildCtx(){
+  const name=val('svc-name')||'Service name';
+  const desc=val('svc-desc')||'_Add one-liner description here_';
+  const owner=val('svc-owner')||CFG.owner||'_Team · @handle_';
+  const today=new Date().toISOString().slice(0,10);
+  return {name,desc,owner,today,repoPrefix:CFG.repoPrefix||'github.com/org/',runbookBase:CFG.runbookBase||'',techStackLines:buildTechStackLines()};
+}
+
+// Markdown → editable blocks (text · code/diagram · table)
+function splitRow(line){
+  let s=line.trim();
+  if(s.startsWith('|')) s=s.slice(1);
+  if(s.endsWith('|'))  s=s.slice(0,-1);
+  return s.split(/(?<!\\)\|/).map(c=>c.trim().replace(/\\\|/g,'|'));
+}
+function parseTable(lines){
+  const headers=splitRow(lines[0]);
+  const w=headers.length;
+  const rows=lines.slice(2).map(splitRow).map(r=>{ const c=r.slice(0,w); while(c.length<w) c.push(''); return c; });
+  return {type:'table',headers,rows};
+}
+function parseMarkdownBlocks(md){
+  const lines=String(md).split('\n');
+  const blocks=[]; let buf=[]; let i=0;
+  const flush=()=>{ if(buf.length){ blocks.push({type:'text',value:buf.join('\n')}); buf=[]; } };
+  while(i<lines.length){
+    const line=lines[i];
+    const fence=line.match(/^(\s*)(`{3,}|~{3,})(.*)$/);
+    if(fence){
+      flush(); const marker=fence[2]; const lang=fence[3].trim(); const code=[]; i++;
+      while(i<lines.length && !lines[i].trimStart().startsWith(marker)){ code.push(lines[i]); i++; }
+      if(i<lines.length) i++;
+      blocks.push({type:'code',lang,value:code.join('\n')}); continue;
+    }
+    const next=lines[i+1]||'';
+    if(/^\s*\|/.test(line) && /-/.test(next) && /^\s*\|?[\s:\-|]+\|?\s*$/.test(next)){
+      flush(); const t=[];
+      while(i<lines.length && /^\s*\|/.test(lines[i])){ t.push(lines[i]); i++; }
+      blocks.push(parseTable(t)); continue;
+    }
+    buf.push(line); i++;
+  }
+  flush(); return blocks;
+}
+
+// editable blocks → markdown
+function serializeBlocks(blocks){
+  const out=(blocks||[]).map(b=>{
+    if(b.type==='text') return b.value;
+    if(b.type==='code') return '```'+(b.lang||'')+'\n'+b.value+'\n```';
+    if(b.type==='table'){
+      const esc=c=>String(c).replace(/\|/g,'\\|').replace(/\n+/g,' ');
+      const head='| '+b.headers.map(esc).join(' | ')+' |';
+      const sep='|'+b.headers.map(()=>'---').join('|')+'|';
+      const body=b.rows.map(r=>'| '+r.map(esc).join(' | ')+' |').join('\n');
+      return head+'\n'+sep+(body?'\n'+body:'');
+    }
+    return '';
+  });
+  return out.join('\n\n').replace(/\n{3,}/g,'\n\n');
+}
+
+function ensureFillData(s){
+  if(!fillData[s.n]) fillData[s.n]=parseMarkdownBlocks(sectionTemplate(s,buildCtx()));
+  return fillData[s.n];
+}
+
+function getFilledMarkdown(){
+  const name=val('svc-name')||'Service name';
+  const separator=CFG.separator==='---'?'\n\n---\n\n':CFG.separator==='blank'?'\n\n':'\n';
+  const selected=SECTIONS.filter(s=>checked.has(s.n));
+  let md=`# ${name} — design document\n\n---\n\n`;
+  selected.forEach(s=>{ ensureFillData(s); md+=serializeBlocks(fillData[s.n]); md+=separator; });
+  return md.trim();
+}
+
+function currentMarkdown(){ return fillMode?getFilledMarkdown():generateMarkdown(); }
+
+// ── Fill UI ───────────────────────────────────────────────────────────────────
+function setOutputMode(mode){
+  fillMode=(mode==='fill');
+  document.getElementById('mode-template').classList.toggle('active',!fillMode);
+  document.getElementById('mode-fill').classList.toggle('active',fillMode);
+  document.getElementById('prev-summary').style.display=fillMode?'none':'';
+  document.getElementById('fill-editor').style.display=fillMode?'block':'none';
+  document.getElementById('draft-row').style.display=fillMode?'flex':'none';
+  renderPreview();
+}
+
+function renderFillEditor(){
+  const host=document.getElementById('fill-editor'); if(!host) return;
+  const selected=SECTIONS.filter(s=>checked.has(s.n));
+  if(!selected.length){ host.innerHTML='<div class="fill-empty">No sections selected — go back to step 4 and add some.</div>'; return; }
+  host.innerHTML=selected.map(s=>{ ensureFillData(s); return renderFillSectionHtml(s); }).join('');
+  requestAnimationFrame(autoGrowAll);
+}
+function renderFillSectionHtml(s){
+  const body=fillData[s.n].map((b,bi)=>renderBlockHtml(s.n,bi,b)).join('');
+  const guide=GUIDES[s.n]?`<button class="fill-guide" onclick="openGuide('${s.n}')">Guide ↗</button>`:'';
+  return `<div class="fill-sec" id="fill-sec-${s.n}">
+    <div class="fill-sec-hd"><span class="fill-sec-num">${s.n}</span><span class="fill-sec-name">${escHtml(s.name)}</span>${guide}<button class="fill-reset" onclick="resetFillSection('${s.n}')">Reset</button></div>
+    ${body}</div>`;
+}
+function renderBlockHtml(n,bi,b){
+  if(b.type==='table') return renderTableHtml(n,bi,b);
+  const cls=b.type==='code'?'fill-code':'fill-text';
+  return `<div class="fill-block"><textarea class="${cls}" data-n="${n}" data-bi="${bi}" spellcheck="false" oninput="onBlockInput(this)">${escHtml(b.value)}</textarea></div>`;
+}
+function renderTableHtml(n,bi,b){
+  const head=b.headers.map(h=>`<th>${escHtml(h)}</th>`).join('')+'<th class="ftx"></th>';
+  const rows=b.rows.map((r,ri)=>{
+    const cells=r.map((c,ci)=>`<td><textarea class="fcell" rows="1" spellcheck="false" data-n="${n}" data-bi="${bi}" data-r="${ri}" data-c="${ci}" oninput="onCellInput(this)">${escHtml(c)}</textarea></td>`).join('');
+    return `<tr>${cells}<td class="ftx"><button class="frow-del" title="Delete row" onclick="delRow('${n}',${bi},${ri})">✕</button></td></tr>`;
+  }).join('');
+  return `<div class="fill-block"><div class="ftable-wrap"><table class="ftable"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><button class="frow-add" onclick="addRow('${n}',${bi})">+ Add row</button></div>`;
+}
+
+function onBlockInput(el){ fillData[el.dataset.n][+el.dataset.bi].value=el.value; autoGrow(el); schedulePreview(); scheduleSave(); }
+function onCellInput(el){ fillData[el.dataset.n][+el.dataset.bi].rows[+el.dataset.r][+el.dataset.c]=el.value; autoGrow(el); schedulePreview(); scheduleSave(); }
+function addRow(n,bi){ const t=fillData[n][bi]; t.rows.push(t.headers.map(()=>'')); rerenderSection(n); scheduleSave(); }
+function delRow(n,bi,ri){ fillData[n][bi].rows.splice(ri,1); rerenderSection(n); scheduleSave(); }
+function rerenderSection(n){ const el=document.getElementById('fill-sec-'+n); const s=SECTIONS.find(x=>x.n===n); if(el&&s){ el.outerHTML=renderFillSectionHtml(s); requestAnimationFrame(autoGrowAll); } refreshPreviewNow(); }
+function resetFillSection(n){ const s=SECTIONS.find(x=>x.n===n); if(!s)return; delete fillData[n]; ensureFillData(s); rerenderSection(n); scheduleSave(); }
+function resetFillAll(){ if(!confirm('Clear all filled content and reset every section back to its template?'))return; fillData={}; renderFillEditor(); refreshPreviewNow(); scheduleSave(); }
+
+function autoGrow(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+function autoGrowAll(){ document.querySelectorAll('#fill-editor textarea').forEach(autoGrow); }
+
+let _prevTimer=null;
+function schedulePreview(){ if(_prevTimer)clearTimeout(_prevTimer); _prevTimer=setTimeout(refreshPreviewNow,160); }
+function refreshPreviewNow(){ if(!fillMode)return; const el=document.getElementById('out-body'); if(el) el.innerHTML=renderOutput(getFilledMarkdown()); }
+
+// ── Draft persistence (localStorage autosave + JSON export/import) ─────────────
+let _saveTimer=null;
+function scheduleSave(){ if(_saveTimer)clearTimeout(_saveTimer); _saveTimer=setTimeout(saveFill,500); }
+function collectState(){
+  return { v:1,
+    svc:{name:val('svc-name'),desc:val('svc-desc'),owner:val('svc-owner')},
+    techStack:{...techStack,api:[...techStack.api],state:[...techStack.state]},
+    customTechs:customTechs.slice(), customSections:customSections.slice(),
+    selectedScenario, checked:[...checked], feFramework, fillData };
+}
+function saveFill(){ try{ localStorage.setItem(FILL_KEY,JSON.stringify(collectState())); flashSaved(); }catch(e){} }
+function flashSaved(){ const p=document.getElementById('saved-pill'); if(!p)return; p.classList.add('show'); clearTimeout(p._t); p._t=setTimeout(()=>p.classList.remove('show'),1200); }
+
+function applyTechStackToUI(){
+  ['db','cache','queue','runtime','csp','objstore','fe','test','e2e','ui'].forEach(cat=>{
+    const el=document.getElementById('ts-'+cat); if(el&&techStack[cat]!=null) el.value=techStack[cat];
+  });
+  if(typeof setFramework==='function') setFramework(techStack.fe);
+  document.querySelectorAll('#ts-api-pills .state-pill').forEach(b=>b.classList.toggle('active',techStack.api.has(b.dataset.val)));
+  document.querySelectorAll('#ts-state-pills .state-pill').forEach(b=>b.classList.toggle('active',techStack.state.has(b.dataset.val)));
+}
+function applyState(d,force){
+  if(!d) return;
+  if(d.fillData&&typeof d.fillData==='object') fillData=d.fillData;
+  if(Array.isArray(d.customSections)) d.customSections.forEach(cs=>{ if(cs&&cs.n&&!SECTIONS.find(x=>x.n===cs.n)){ SECTIONS.push(cs); customSections.push(cs); } });
+  if(Array.isArray(d.customTechs)) customTechs=d.customTechs.slice();
+  if(d.techStack){ techStack={...techStack,...d.techStack,api:new Set(d.techStack.api||[...techStack.api]),state:new Set(d.techStack.state||[...techStack.state])}; }
+  if(d.feFramework) feFramework=d.feFramework;
+  if(d.svc){ if(force||!val('svc-name')) setVal('svc-name',d.svc.name); if(force||!val('svc-desc')) setVal('svc-desc',d.svc.desc); if(force||!val('svc-owner')) setVal('svc-owner',d.svc.owner); }
+  if(Array.isArray(d.checked)) checked=new Set(d.checked);
+  if(d.selectedScenario){ selectedScenario=d.selectedScenario; const sc=SCENARIOS.find(s=>s.id===d.selectedScenario); if(sc) scenarioRatings=sc.ratings; }
+  applyTechStackToUI(); renderCustomTechs(); updateSummary();
+}
+function exportDraft(){
+  saveFill();
+  const raw=localStorage.getItem(FILL_KEY)||JSON.stringify(collectState());
+  const slug=(val('svc-name')||'design').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'design';
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([raw],{type:'application/json'})); a.download=`${slug}-draft.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+function importDraft(e){
+  const f=e.target.files&&e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ applyState(JSON.parse(r.result),true); goToStep(5); setOutputMode('fill'); saveFill(); }
+    catch(err){ alert('Could not read that draft — is it a valid .json export from this tool?'); } };
+  r.readAsText(f); e.target.value='';
+}
 
 // ── Custom scenarios ──────────────────────────────────────────────────────────
 function toggleCustomScenario(){
@@ -2057,6 +2293,7 @@ function resetSettings(){
 
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSettings(); });
 document.addEventListener('DOMContentLoaded', loadSettings);
+document.addEventListener('DOMContentLoaded', ()=>{ try{ const raw=localStorage.getItem(FILL_KEY); if(raw) applyState(JSON.parse(raw), false); }catch(e){} });
 function openGuide(n){
   const raw=GUIDES[n];
   if(!raw)return;
