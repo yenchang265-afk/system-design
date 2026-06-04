@@ -1251,7 +1251,6 @@ function toggleApiPill(btn){
   document.querySelectorAll('#ts-api-pills .state-pill').forEach(b=>{
     b.classList.toggle('active', techStack.api.has(b.getAttribute('data-val')));
   });
-  updateTechSummary();
   renderPreview();
 }
 
@@ -1265,35 +1264,14 @@ function toggleStatePill(btn){
   document.querySelectorAll('#ts-state-pills .state-pill').forEach(b=>{
     b.classList.toggle('active', techStack.state.has(b.getAttribute('data-val')));
   });
-  updateTechSummary();
   renderPreview();
 }
 
 function selectTech(category, value){
   techStack[category] = value;
   if(category==='fe') setFramework(value);
-  updateTechSummary();
   renderPreview();
 }
-
-function updateTechSummary(){
-  const parts = [
-    TECH_LABELS.db[techStack.db],
-    TECH_LABELS.cache[techStack.cache] !== 'No cache' ? TECH_LABELS.cache[techStack.cache] : null,
-    TECH_LABELS.queue[techStack.queue] !== 'No MQ' ? TECH_LABELS.queue[techStack.queue] : null,
-    TECH_LABELS.cloud[techStack.cloud] !== 'No CSP' ? TECH_LABELS.cloud[techStack.cloud] : null,
-    TECH_LABELS.fe[techStack.fe] !== 'None / Other' ? TECH_LABELS.fe[techStack.fe] : null,
-    techStack.test !== 'none' ? TECH_LABELS.test[techStack.test] : null,
-    techStack.e2e !== 'none' ? TECH_LABELS.e2e[techStack.e2e] : null,
-    ...[...techStack.state].map(v=>TECH_LABELS.state[v]||v),
-    techStack.ui !== 'none' ? TECH_LABELS.ui[techStack.ui] : null,
-    techStack.runtime !== 'none' ? TECH_LABELS.runtime[techStack.runtime] : null,
-    techStack.csp !== 'none' ? TECH_LABELS.csp[techStack.csp] : null,
-    techStack.objstore !== 'none' ? TECH_LABELS.objstore[techStack.objstore] : null,
-    ...[...techStack.api].map(v=>TECH_LABELS.api[v]||v),
-  ].filter(Boolean);
-}
-
 
 function resolveTech(md){
   const s = techStack;
@@ -2294,56 +2272,6 @@ function resetSettings(){
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSettings(); });
 document.addEventListener('DOMContentLoaded', loadSettings);
 document.addEventListener('DOMContentLoaded', ()=>{ try{ const raw=localStorage.getItem(FILL_KEY); if(raw) applyState(JSON.parse(raw), false); }catch(e){} });
-function openGuide(n){
-  const raw=GUIDES[n];
-  if(!raw)return;
-  const md=typeof raw==='object'
-    ?(raw[feFramework]||raw.nextjs||Object.values(raw)[0])
-    :raw;
-  const sec=SECTIONS.find(s=>s.n===n);
-  document.getElementById('guide-title').textContent=(sec?sec.n+' · '+sec.name:'Section guide');
-  document.getElementById('guide-body').innerHTML=renderMd(md);
-  document.getElementById('guide-drawer').classList.add('open');
-  document.getElementById('guide-overlay').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeGuide(){
-  document.getElementById('guide-drawer').classList.remove('open');
-  document.getElementById('guide-overlay').classList.remove('open');
-  document.body.style.overflow='';
-}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeGuide();});
-
-function renderMd(md){
-  let html=md
-    .replace(/```([\s\S]*?)```/g,(_,c)=>`<pre>${esc(c.trim())}</pre>`)
-    .replace(/`([^`]+)`/g,(_,c)=>`<code>${esc(c)}</code>`)
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/^---$/gm,'<hr>')
-    .replace(/^> (.+)$/gm,'<blockquote><p>$1</p></blockquote>')
-    .replace(/\n((?:\|.+\n)+)/g,(_,t)=>renderTable(t))
-    .replace(/^[-*] (.+)$/gm,'<li data-ul>$1</li>')
-    .replace(/(<li data-ul>.*<\/li>\n?)+/g,m=>`<ul>${m.replace(/ data-ul/g,'')}</ul>`)
-    .replace(/^\d+\. (.+)$/gm,'<li data-ol>$1</li>')
-    .replace(/(<li data-ol>.*<\/li>\n?)+/g,m=>`<ol>${m.replace(/ data-ol/g,'')}</ol>`)
-    .replace(/^(?!<[hulopbt]|\s*$)(.+)$/gm,'<p>$1</p>');
-  return html;
-}
-function renderTable(t){
-  const rows=t.trim().split('\n').filter(r=>r.includes('|'));
-  const sep=rows.findIndex(r=>/^[| -]+$/.test(r));
-  if(sep<0)return t;
-  const head=rows.slice(0,sep);
-  const body=rows.slice(sep+1);
-  const cells=r=>r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<td>${c.trim()}</td>`).join('');
-  const hcells=r=>r.split('|').filter((_,i,a)=>i>0&&i<a.length-1).map(c=>`<th>${c.trim()}</th>`).join('');
-  return `<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table><thead>${head.map(r=>`<tr>${hcells(r)}</tr>`).join('')}</thead><tbody>${body.map(r=>`<tr>${cells(r)}</tr>`).join('')}</tbody></table></div>`;
-}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function openGuide(n){
   const raw=GUIDES[n];
