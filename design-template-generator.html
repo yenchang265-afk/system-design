@@ -1393,13 +1393,15 @@ function updateNavButtons(){
 }
 function toggleCollapse(n){
   const el=document.getElementById('fill-sec-'+n); if(!el) return;
-  if(el.classList.toggle('collapsed')) collapsedSecs.add(n); else collapsedSecs.delete(n);
+  if(el.classList.toggle('collapsed')) collapsedSecs.add(n);
+  else { collapsedSecs.delete(n); requestAnimationFrame(()=>autoGrowSection(n)); }  // re-size now that it's visible
   updateNavButtons(); scheduleSave();
 }
 function setAllCollapsed(v){
   const selected=SECTIONS.filter(s=>checked.has(s.n));
   collapsedSecs=v?new Set(selected.map(s=>s.n)):new Set();
   selected.forEach(s=>{ const el=document.getElementById('fill-sec-'+s.n); if(el) el.classList.toggle('collapsed',v); });
+  if(!v) requestAnimationFrame(autoGrowAll);  // textareas sized while hidden need a re-grow on expand
   updateNavButtons(); scheduleSave();
 }
 function toggleAllCollapsed(){
@@ -1443,6 +1445,7 @@ function resetFillAll(){ if(!confirm('Clear all filled content and reset every s
 
 function autoGrow(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
 function autoGrowAll(){ document.querySelectorAll('#fill-editor textarea').forEach(autoGrow); }
+function autoGrowSection(n){ const el=document.getElementById('fill-sec-'+n); if(el) el.querySelectorAll('textarea').forEach(autoGrow); }
 
 let _prevTimer=null;
 function schedulePreview(){ if(_prevTimer)clearTimeout(_prevTimer); _prevTimer=setTimeout(refreshPreviewNow,160); }
