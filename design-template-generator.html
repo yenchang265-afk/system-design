@@ -273,10 +273,12 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
 .ftable th{background:var(--bg3);text-align:left;font-weight:600;color:var(--text2);padding:6px 8px;border-bottom:0.5px solid var(--border2);border-right:0.5px solid var(--border);white-space:nowrap;text-transform:none;letter-spacing:0;font-size:11px}
 .ftable td{border-bottom:0.5px solid var(--border);border-right:0.5px solid var(--border);padding:0;vertical-align:top}
 .ftable tr:last-child td{border-bottom:none}
-.ftable th.ftx,.ftable td.ftx{width:30px;text-align:center;border-right:none}
+.ftable th.ftx,.ftable td.ftx{width:32px;text-align:center;position:sticky;right:0;z-index:1;border-right:none;border-left:0.5px solid var(--border)}
+.ftable td.ftx{background:var(--bg)}
+.ftable th.ftx{background:var(--bg3)}
 .fcell{width:100%;min-width:130px;box-sizing:border-box;border:none;background:transparent;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.5;padding:6px 8px;resize:none;overflow:hidden}
 .fcell:focus{outline:none;background:var(--blue-bg)}
-.frow-del{border:none;background:transparent;color:var(--text4);cursor:pointer;font-size:11px;padding:4px}
+.frow-del{border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:12px;padding:4px;line-height:1}
 .frow-del:hover{color:var(--red)}
 .frow-add{margin-top:6px;font-size:11px;padding:4px 10px;border:0.5px dashed var(--border2);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
 .frow-add:hover{background:var(--bg3);color:var(--text)}
