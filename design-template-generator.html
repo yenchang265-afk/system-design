@@ -694,7 +694,7 @@ function selectScenario(id){
   const sc=SCENARIOS.find(s=>s.id===id);
   scenarioRatings=sc.ratings;
   const ratedSections=SECTIONS.filter(s=>{const n=parseInt(s.n);return Number.isFinite(n)&&n>=1;});
-  checked=new Set(ratedSections.filter((_,i)=>sc.ratings[i]>=1).map(s=>s.n));
+  checked=new Set(ratedSections.filter((_,i)=>sc.ratings[i]===2).map(s=>s.n));  // pre-check the strongly-recommended set the card advertises
   updateSummary();
 }
 
