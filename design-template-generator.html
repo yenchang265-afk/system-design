@@ -50,6 +50,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .step.done .step-label{color:var(--text2)}
 
 .summary-box{margin:auto 20px 0;padding:14px;background:var(--bg3);border-radius:var(--rl);border:0.5px solid var(--border)}
+.start-over{margin:10px 20px 0;padding:7px;font-size:11px;font-weight:500;border:0.5px solid var(--border2);border-radius:7px;background:transparent;color:var(--text3);cursor:pointer;font-family:var(--font)}
+.start-over:hover{background:var(--bg3);color:var(--text2)}
 .sb-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px}
 .sb-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
 .sb-key{color:var(--text2)}
@@ -269,14 +271,14 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
 .fill-code{background:var(--bg3)}
 .fill-text:focus,.fill-code:focus{outline:none;border-color:var(--border3);color:var(--text)}
 .ftable-wrap{overflow-x:auto;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg)}
-.ftable{border-collapse:collapse;width:100%;font-size:12px}
-.ftable th{background:var(--bg3);text-align:left;font-weight:600;color:var(--text2);padding:6px 8px;border-bottom:0.5px solid var(--border2);border-right:0.5px solid var(--border);white-space:nowrap;text-transform:none;letter-spacing:0;font-size:11px}
+.ftable{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}
+.ftable th{background:var(--bg3);text-align:left;font-weight:600;color:var(--text2);padding:6px 8px;border-bottom:0.5px solid var(--border2);border-right:0.5px solid var(--border);white-space:normal;word-break:break-word;text-transform:none;letter-spacing:0;font-size:11px}
 .ftable td{border-bottom:0.5px solid var(--border);border-right:0.5px solid var(--border);padding:0;vertical-align:top}
 .ftable tr:last-child td{border-bottom:none}
 .ftable th.ftx,.ftable td.ftx{width:32px;text-align:center;position:sticky;right:0;z-index:1;border-right:none;border-left:0.5px solid var(--border)}
 .ftable td.ftx{background:var(--bg)}
 .ftable th.ftx{background:var(--bg3)}
-.fcell{width:100%;min-width:130px;box-sizing:border-box;border:none;background:transparent;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.5;padding:6px 8px;resize:none;overflow:hidden}
+.fcell{width:100%;min-width:0;box-sizing:border-box;border:none;background:transparent;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.5;padding:6px 8px;resize:none;overflow:hidden;word-break:break-word}
 .fcell:focus{outline:none;background:var(--blue-bg)}
 .frow-del{border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:12px;padding:4px;line-height:1}
 .frow-del:hover{color:var(--red)}
@@ -333,6 +335,7 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
     <div class="sb-row"><span class="sb-key">Scenario</span><span class="sb-val" id="sum-scenario">—</span></div>
     <div class="sb-row"><span class="sb-key">Sections</span><span class="sb-val" id="sum-count">0</span></div>
   </div>
+  <button class="start-over" onclick="startOver()" title="Clear the saved draft and everything entered, and start from a clean slate">↺ Start over</button>
 </div>
 
 <!-- RIGHT -->
@@ -344,16 +347,16 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
     <div class="step-desc">Give the tool enough context to generate a meaningful output header.</div>
     <div class="field">
       <label>Service name</label>
-      <input type="text" id="svc-name" placeholder="" oninput="updateSummary()">
+      <input type="text" id="svc-name" placeholder="e.g. Order Service" oninput="updateSummary()">
     </div>
     <div class="field">
       <label>One-liner description</label>
-      <input type="text" id="svc-desc" placeholder="">
+      <input type="text" id="svc-desc" placeholder="e.g. Handles checkout, orders, and returns for the storefront">
       <div class="field-hint">No acronyms. Pass the "stranger in an elevator" test.</div>
     </div>
     <div class="field">
       <label>Service owner</label>
-      <input type="text" id="svc-owner" placeholder="">
+      <input type="text" id="svc-owner" placeholder="e.g. Platform team · @jane.doe">
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="goToStep(2)">Next: tech stack →</button>
@@ -584,17 +587,17 @@ const SCENARIOS=[
   {id:'fullstack',name:'Fullstack feature',desc:'FE and BE both change in an existing service',short:'FE + BE both change',
    ratings:[2,2,2,1,2,1,1,1,1,2,2,1,2,2,1,2,1,1]},
   {id:'fe-only',name:'FE-only feature',desc:'UI or UX work with no backend changes',short:'UI / UX only',
-   ratings:[1,1,2,0,2,2,1,0,1,1,0,0,-1,-1,0,1,0,0]},
+   ratings:[2,2,2,0,2,2,1,0,1,1,0,0,-1,-1,0,1,0,0]},
   {id:'be-api',name:'BE / API change',desc:'API or data layer changes only',short:'API or data change',
-   ratings:[2,1,2,1,0,0,1,1,2,1,2,1,2,2,1,2,1,0]},
+   ratings:[2,2,2,1,0,0,1,1,2,1,2,1,2,2,1,2,1,0]},
   {id:'migration',name:'Data model migration',desc:'Database schema or data model changes',short:'Data model changes',
    ratings:[2,2,2,0,0,0,0,1,1,2,2,1,2,1,1,2,1,0]},
   {id:'revamp',name:'Tech revamp',desc:'Rewriting or rearchitecting the service',short:'Rewrite / rearchitect',
    ratings:[2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1]},
   {id:'security',name:'Security',desc:'Penetration test or security review',short:'Security',
-   ratings:[1,2,2,2,1,1,2,2,1,1,1,1,1,2,1,2,1,0]},
+   ratings:[2,2,2,2,1,1,2,2,1,1,1,1,1,2,1,2,1,0]},
   {id:'compliance',name:'Compliance',desc:'GDPR, PCI DSS, or SOC2 audit',short:'Compliance',
-   ratings:[1,2,2,2,1,1,1,2,2,1,1,1,2,2,1,1,1,1]},
+   ratings:[2,2,2,2,1,1,1,2,2,1,1,1,2,2,1,1,1,1]},
   {id:'committee-review',name:'Committee review',desc:'Pre-coding design review by architecture committee',short:'Committee review',
    ratings:[-1, -1, 2, 2, -1, -1, 2, 1, -1, -1, 1, 2, 1, 2, -1, -1, 2, -1]}
 ];
@@ -1448,6 +1451,11 @@ function resetFillAll(){ if(!confirm('Clear all filled content and reset every s
 function autoGrow(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
 function autoGrowAll(){ document.querySelectorAll('#fill-editor textarea').forEach(autoGrow); }
 function autoGrowSection(n){ const el=document.getElementById('fill-sec-'+n); if(el) el.querySelectorAll('textarea').forEach(autoGrow); }
+function startOver(){
+  if(!confirm('Start over? This clears the saved draft and everything you have entered.')) return;
+  try{ localStorage.removeItem(FILL_KEY); }catch(e){}
+  location.reload();
+}
 
 let _prevTimer=null;
 function schedulePreview(){ if(_prevTimer)clearTimeout(_prevTimer); _prevTimer=setTimeout(refreshPreviewNow,160); }
