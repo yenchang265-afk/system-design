@@ -296,6 +296,16 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
 .fill-progress{font-size:11px;font-weight:500;margin-left:auto;align-self:center}
 .fill-progress.needs{color:var(--amber-text)}
 .fill-progress.done{color:var(--green-text)}
+/* AI DRAFT */
+.fill-draft{font-size:11px;padding:3px 8px;border:0.5px solid var(--blue-border);border-radius:6px;background:var(--blue-bg);color:var(--blue-text);cursor:pointer;font-family:var(--font);white-space:nowrap}
+.fill-draft:hover{opacity:.85}
+.fill-draft:disabled{opacity:.5;cursor:wait}
+.ai-err{font-size:11px;color:var(--red-text)}
+.ai-banner{padding:10px 12px;margin-bottom:14px;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--r);font-size:12px;color:var(--amber-text);line-height:1.6}
+.ai-banner code{font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 5px;border-radius:3px}
+.ai-panel{padding:12px;margin-bottom:14px;border:0.5px solid var(--border2);border-radius:var(--rl);background:var(--bg2);display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ai-panel label{margin:0 0 3px;font-size:9px}
+.ai-panel input{padding:5px 8px;font-size:12px;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font)}
 </style>
 </head>
 <body>
@@ -1723,6 +1733,126 @@ function validateSectionResponse(n, text){
   if(kept > 0) res.warning = kept + ' table(s) kept from template — response tables appeared reordered';
   return res;
 }
+
+// ── AI draft (opencode) — HTTP client + queue ──────────────────────────────────
+let aiSession = null;        // session id, memory only (stale after reload is worthless)
+let aiQueue = [];            // section numbers waiting (FIFO — one in-flight message per session)
+let aiActive = null;         // section number currently drafting
+let aiBatch = null;          // {total} while "Draft unfilled" batch runs
+let aiUndo = {};             // sectionN -> previous blocks (one level, memory only)
+let _aiTimers = {};          // sectionN -> elapsed-seconds interval
+
+function launchCmd(){
+  const origin = (location.protocol === 'file:' || location.origin === 'null') ? 'null' : location.origin;
+  return 'opencode serve --port 4096 --cors ' + origin;
+}
+function connectHelpHtml(){
+  return 'Cannot reach opencode at <code>' + escHtml(aiCfg().url) + '</code>. ' +
+    'From your service repo root run: <code>' + escHtml(launchCmd()) + '</code> ' +
+    '<button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>';
+}
+function showAiBanner(html){ const el = document.getElementById('ai-banner'); if(el){ el.innerHTML = html; el.style.display = 'block'; } }
+function hideAiBanner(){ const el = document.getElementById('ai-banner'); if(el) el.style.display = 'none'; }
+
+function friendlyAiError(e){
+  if(e instanceof TypeError) return 'Server unreachable or CORS blocked — see banner';
+  return ((e && e.message) || 'Unknown error').slice(0, 160);
+}
+
+async function aiFetch(path, opts){
+  const r = await fetch(aiCfg().url + path, opts);
+  if(!r.ok) throw new Error('Server error (' + r.status + '): ' + (await r.text()).slice(0, 200));
+  return r.json();
+}
+
+async function aiEnsureSession(){
+  if(aiSession) return aiSession;
+  await aiFetch('/doc', {method: 'GET'});   // cheap connectivity ping (spec §1)
+  const s = await aiFetch('/session', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({title: (val('svc-name') || 'design') + ' design doc'})
+  });
+  aiSession = s.id;
+  return aiSession;
+}
+
+async function aiSendMessage(prompt){
+  const id = await aiEnsureSession();
+  const cfg = aiCfg();
+  const body = {parts: [{type: 'text', text: prompt}]};
+  if(cfg.model){
+    const i = cfg.model.indexOf('/');
+    body.model = i > 0 ? {providerID: cfg.model.slice(0, i), modelID: cfg.model.slice(i + 1)} : cfg.model;
+  }
+  if(cfg.agent) body.agent = cfg.agent;
+  const data = await aiFetch('/session/' + id + '/message', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  });
+  return extractResponseText(data.parts || []);
+}
+
+function setDraftBtn(n, state){
+  const b = document.getElementById('ai-draft-btn-' + n); if(!b) return;
+  if(state === 'idle'){ b.disabled = false; b.textContent = '✨ Draft'; }
+  else if(state === 'queued'){ b.disabled = true; b.textContent = 'Queued'; }
+  else { b.disabled = true; b.textContent = 'Drafting…'; }
+  const sec = document.getElementById('fill-sec-' + n);
+  if(sec) sec.style.opacity = state === 'busy' ? '.6' : '';   // dim while drafting (spec §3)
+}
+function setAiErr(n, msg){ const el = document.getElementById('ai-err-' + n); if(el) el.textContent = msg || ''; }
+function startElapsed(n){
+  const t0 = Date.now();
+  _aiTimers[n] = setInterval(() => {
+    const b = document.getElementById('ai-draft-btn-' + n);
+    if(b) b.textContent = 'Drafting… ' + Math.round((Date.now() - t0) / 1000) + 's';
+  }, 1000);
+}
+function stopElapsed(n){ clearInterval(_aiTimers[n]); delete _aiTimers[n]; }
+
+function enqueueDraft(n){
+  if(aiActive === n || aiQueue.includes(n)) return;
+  const s = SECTIONS.find(x => x.n === n); if(!s) return;
+  ensureFillData(s);
+  if(sectionEdited(n) && !confirm('Draft over section ' + n + '? Current content will be replaced (one-level Undo available).')) return;
+  aiQueue.push(n); setDraftBtn(n, 'queued'); setAiErr(n, '');
+  processQueue();
+}
+
+async function processQueue(){
+  if(aiActive || !aiQueue.length) return;
+  const n = aiQueue.shift(); aiActive = n;
+  setDraftBtn(n, 'busy'); startElapsed(n); updateBatchProgress();
+  try{
+    const text = await aiSendMessage(buildSectionPrompt(n));
+    const v = validateSectionResponse(n, text);
+    if(!v.ok) throw new Error("Response didn't match section format: " + v.error);
+    aiUndo[n] = fillData[n];
+    fillData[n] = v.blocks;
+    rerenderSection(n); scheduleSave();
+    hideAiBanner();
+  }catch(e){
+    if(e instanceof TypeError) showAiBanner(connectHelpHtml());
+    setAiErr(n, friendlyAiError(e));
+    if(aiBatch){
+      aiQueue.forEach(q => setDraftBtn(q, 'idle'));
+      aiQueue.length = 0; aiBatch = null;
+      showAiBanner('Batch stopped at section ' + n + ': ' + escHtml(friendlyAiError(e)) +
+        ' <button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>');
+    }
+  }finally{
+    stopElapsed(n); aiActive = null; setDraftBtn(n, 'idle'); updateBatchProgress();
+    processQueue();
+  }
+}
+
+function undoDraft(n){
+  if(!aiUndo[n]) return;
+  fillData[n] = aiUndo[n]; delete aiUndo[n];
+  rerenderSection(n); scheduleSave();
+}
+
+// Temporary stub — replaced by the real implementation in Task 5.
+function updateBatchProgress(){}
 
 const GUIDES={
   '01':"# 01 \u00b7 Version history\n\n**Layer:** Doc health \u00b7 **Effort:** Light\n**Mandatory trigger:** Schema migration \u00b7 Feature launch \u00b7 Security policy change\n\n---\n\n## Review checklist\n\n- [ ] Every schema migration that merged to production has a row\n- [ ] Every breaking change is marked Yes in the Breaking? column \u2014 not Maybe or blank\n- [ ] Breaking? = Yes rows name who was notified and link to the deprecation entry in 14\n- [ ] Version numbers follow the convention \u2014 no patch versions\n- [ ] \"What changed\" is one sentence; detail lives in the changed section\n\n---\n\n## Template\n\n```\n**Mandatory triggers:** \u2610 Schema migration merged \u00b7 \u2610 Major feature launch \u00b7 \u2610 Security policy change\n> Tick the box for each trigger type this document has ever included \u2014 a quick signal of what kinds of changes have occurred.\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v1.0 | YYYY-MM-DD | @handle | Initial document | Initial | N/A |\n```\n\n\n### Worked example \u2014 Order Management Service (e-commerce)\n\n> **Breaking change definition:** any change requiring a consumer to update their code \u2014 column rename, type change, enum value removal, endpoint removal, auth change, response shape change. When in doubt, mark Yes.\n\n**Mandatory triggers:** \u2611 Schema migration merged \u00b7 \u2611 Major feature launch \u00b7 \u2610 Security policy change\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v3.0 | 2025-11-03 | @jane.doe | Added `returns` entity; order status enum extended with `return_requested`, `returned`; 11 and 13 updated | Migration | **Yes** \u2014 consumers must handle two new enum values. Notified via #api-changes. See 14. |\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL); 10 and 11 updated | Migration | **Yes** \u2014 direct SQL `INSERT` omitting `currency_code` fails if migration runs before deploy. See 14. |\n| v1.1 | 2025-06-02 | @jane.doe | Added Stripe webhook idempotency rule to 11; added SendGrid to 04 and 12 | Feature | No \u2014 doc update only |\n| v1.0 | 2025-03-18 | @jane.doe | Initial document | Initial | N/A |\n\n---\n\n## Quick reference\n\n**What it is:** A chronological log of every meaningful change to this document \u2014 what changed, when, who changed it, and whether existing cons\u2026\n\n**When to use:** Always. Every project. No exceptions.\n\n**Skip / reduce if:** No skip condition.\n\n## What gets a row \u2014 and what doesn't\n\n**Add a row when:**\n- A schema migration merges to production\n- A major feature launches (new endpoints, new entities, new flows)\n- A security policy changes (new secret rotation, new PII classification, pen test findings actioned)\n- A section changes enough that a reader of the old version would make a wrong technical decision\n\n**Do not add a row for:**\n- Typo fixes, rewording, or formatting changes that don't affect meaning\n- Diagram cosmetic updates\n- Adding a row to 02 Review history (that's a review, not a version change)\n\n## Version numbering\n\n| Bump | When | Example |\n|------|------|---------|\n| **Major** (v2.0) | Breaking change for any consumer, or a multi-section rewrite | Removing an enum value; renaming a column |\n| **Minor** (v1.1) | Additive \u2014 doesn't break existing consumers | Nullable column added; new rule in 11 |\n| **Initial** (v1.0) | First version of the document | \u2014 |\n\nNo patch versions. If it's breaking, it's a major bump.\n\n## Valid trigger values\n\n| Value | Meaning |\n|-------|---------|\n| `Migration` | A database schema migration merged |\n| `Feature` | A new product feature launched |\n| `Security` | A security policy changed |\n| `Initial` | First version of the document |\n\n**Cross-references:** 02 Review history \u2014 reviews are separate from version history \u00b7 14 API surface \u2014 update whenever Breaking? = Yes\n\n---\n\n## Best practices\n\n- **One change per row** \u2014 if a migration adds two unrelated tables, split into two rows.\n- **One sentence in \"What changed\"** \u2014 detail lives in the section that changed.\n- **Mark Breaking? honestly** \u2014 a false No is far more damaging than an unnecessary process step. When Breaking? = Yes, follow the deprecation process in 14.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 Breaking? is honest and actionable**\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL) | Migration | **Yes** \u2014 direct SQL INSERT omitting `currency_code` fails. Notified via #api-changes. See 14. |\n\n*Why good:* Names exactly who is affected, how, and where to find the deprecation detail.",
