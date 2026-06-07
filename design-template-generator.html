@@ -1810,6 +1810,7 @@ function startElapsed(n){
 function stopElapsed(n){ clearInterval(_aiTimers[n]); delete _aiTimers[n]; }
 
 function enqueueDraft(n){
+  n = String(n);
   if(aiActive === n || aiQueue.includes(n)) return;
   const s = SECTIONS.find(x => x.n === n); if(!s) return;
   ensureFillData(s);
@@ -1826,7 +1827,7 @@ async function processQueue(){
     const text = await aiSendMessage(buildSectionPrompt(n));
     const v = validateSectionResponse(n, text);
     if(!v.ok) throw new Error("Response didn't match section format: " + v.error);
-    aiUndo[n] = fillData[n];
+    aiUndo[n] = (fillData[n] || []).map(b => JSON.parse(JSON.stringify(b)));  // deep snapshot — reconcile may share block objects with v.blocks
     fillData[n] = v.blocks;
     rerenderSection(n); scheduleSave();
     hideAiBanner();
@@ -1846,6 +1847,7 @@ async function processQueue(){
 }
 
 function undoDraft(n){
+  n = String(n);
   if(!aiUndo[n]) return;
   fillData[n] = aiUndo[n]; delete aiUndo[n];
   rerenderSection(n); scheduleSave();
