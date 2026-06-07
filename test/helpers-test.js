@@ -70,6 +70,30 @@ const assertions = `
   const m13 = swapped.blocks.filter(b => b.type === 'table');
   ok(m13[0].rows[1][0] === orig13[0].rows[1][0] && m13[1].rows[0][0] === orig13[1].rows[0][0], 'section 13 reorder keeps ORIGINAL tables (no silent merge)');
 
+  // ── Prose-bold regression: a plain **Note:** line near a table must NOT shift
+  //    the anchor and discard a legitimately filled table. Anchor stays the
+  //    heading / inline-code label; filled rows are accepted, not reverted. ──
+  // Section 13 has the two entity tables under one '### Field reference' heading.
+  // Inject a prose-bold note above the 'users' table and a distinct filled cell,
+  // then confirm the filled value survives (table accepted, no warning).
+  // Place the **Note:** directly above the table (after the **\`users\`** label) —
+  // this is exactly where the old code mis-anchored it to 'note:' and discarded
+  // the filled table. The fix keeps the anchor at the inline-code label 'users'.
+  const proseResp = tpl13
+    .replace(/_[^_\\n|]+_/g, 'Filled')
+    .replace('**\`users\`**', '**\`users\`**\\n\\n**Note:** prose note directly above a table')
+    .replace('Primary key', 'SENTINEL-CELL-VALUE');  // a real filled-cell edit in the users table
+  const prose = validateSectionResponse('13', proseResp);
+  ok(prose.ok === true, 'prose-bold: response accepted (ok:true)');
+  ok(!prose.warning, 'prose-bold: no spurious reorder warning');
+  const proseTbls = prose.blocks.filter(b => b.type === 'table');
+  ok(proseTbls.some(t => t.rows.some(r => r.some(c => c === 'SENTINEL-CELL-VALUE'))),
+     'prose-bold: filled table row ACCEPTED (not reverted to template)');
+  // anchors must be unchanged by the prose bold — still the inline-code labels.
+  const proseAnc = tableAnchors(parseMarkdownBlocks(stripWrappingFence(proseResp)));
+  ok(proseAnc[0] === 'users' && proseAnc[1] === 'resources',
+     'prose-bold: anchors stay inline-code labels (note ignored)');
+
   // Preamble: chatter before the heading is stripped from merged content.
   const pre = validateSectionResponse('13', 'Some preamble chatter\\n\\n' + tpl13.replace(/_[^_\\n|]+_/g, 'Filled'));
   ok(pre.ok === true && pre.blocks.find(b => b.type === 'text').value.startsWith('##'), 'preamble stripped — first merged text block starts with ##');

@@ -1652,23 +1652,33 @@ function buildSectionPrompt(n){
   ].join('\n');
 }
 
-// Anchor each table to the nearest heading above it, so same-signature tables
-// (e.g. the two entity tables in section 13) can't be silently swapped. Bold
-// entity labels (**`users`**) act as headings here — that's what distinguishes
-// the two identical `column|type|description|constraints` tables in 13.
+// Anchor each table to the nearest structural marker above it, so same-signature
+// tables (e.g. the two entity tables in section 13) can't be silently swapped.
+// The anchor is the nearest `#{2,4}` heading above the table — UNLESS an
+// inline-code bold label (**`users`**) appears within that heading's region, in
+// which case the label is a finer anchor. Plain prose bold lead-ins (**Note:**,
+// **Important:**, **Why good:**) are NOT anchors — treating them as such caused a
+// regression where an ordinary bold note near a table shifted the anchor and the
+// legitimately filled table was discarded. A new heading resets the code label so
+// a label only applies inside the heading region it was declared in.
 function tableAnchors(blocks){
-  const out = []; let last = '';
+  const HEAD = /^#{2,4}\s+.+$/gm;          // markdown heading
+  const CODE = /^\s*\*\*`([^`]+)`\*\*/gm;  // inline-code bold label, e.g. **`users`**
+  const norm = s => String(s).replace(/^#+\s*/, '').replace(/[`_*]/g, '').trim().toLowerCase();
+  const out = []; let lastHeading = ''; let lastCodeLabel = '';
   (blocks || []).forEach(b => {
     if(b.type === 'text'){
-      const hs = b.value.match(/^(?:#{2,4}\s+.+|\*\*.+?\*\*.*)$/gm);
-      if(hs && hs.length){
-        const h = hs[hs.length - 1];
-        const bold = h.match(/^\s*\*\*(.+?)\*\*/); // bold entity label → use only the label
-        last = (bold ? bold[1] : h.replace(/^#+\s*/, ''))
-          .replace(/[`_*]/g, '').trim().toLowerCase();
-      }
+      const heads = [...b.value.matchAll(HEAD)];
+      const codes = [...b.value.matchAll(CODE)];
+      // A heading resets the code label, but a label appearing AFTER the last
+      // heading in the same block still applies — so honour only code labels that
+      // come after the last heading's position in this block.
+      const lastHeadIdx = heads.length ? heads[heads.length - 1].index : -1;
+      if(heads.length){ lastHeading = norm(heads[heads.length - 1][0]); lastCodeLabel = ''; }
+      const validCodes = codes.filter(c => c.index > lastHeadIdx);
+      if(validCodes.length) lastCodeLabel = norm(validCodes[validCodes.length - 1][1]);
     } else if(b.type === 'table'){
-      out.push(last);
+      out.push(lastCodeLabel || lastHeading);
     }
   });
   return out;
@@ -1701,7 +1711,7 @@ function validateSectionResponse(n, text){
     if(b.type !== 'table'){ merged.push(b); return; }
     const orig = origTables[ti];
     const oa = origAnchors[ti], ra = respAnchors[ri];
-    ti++; const myRi = ri++;
+    ti++; ri++;
     if(!orig) return; // extra table beyond the original count: dropped
     if(tableSig(b.headers) !== tableSig(orig.headers)){ merged.push(orig); return; }
     if(oa === ra || !oa || !ra){ merged.push(b); return; }
