@@ -1397,7 +1397,17 @@ function renderFillNav(){
   return `<div class="fill-nav">
     <button class="fill-nav-btn" id="fill-collapse-btn" onclick="toggleAllCollapsed()">Expand all</button>
     <button class="fill-nav-btn" id="fill-unfilled-btn" onclick="toggleOnlyUnfilled()">Only unfilled</button>
+    <button class="fill-nav-btn" id="ai-batch-btn" onclick="toggleBatch()">✨ Draft unfilled</button>
+    <button class="fill-nav-btn" onclick="toggleAiPanel()">AI settings</button>
+    <span class="fill-progress" id="ai-batch-progress"></span>
     <span class="fill-progress" id="fill-progress"></span>
+  </div>
+  <div class="ai-banner" id="ai-banner" style="display:none"></div>
+  <div class="ai-panel" id="ai-panel" style="display:none">
+    <div><label>Server URL</label><br><input id="ai-url" style="width:210px" placeholder="http://127.0.0.1:4096"></div>
+    <div><label>Model (optional, provider/model)</label><br><input id="ai-model" style="width:180px" placeholder="server default"></div>
+    <div><label>Agent (optional)</label><br><input id="ai-agent" style="width:110px" placeholder="default"></div>
+    <button class="fill-nav-btn" onclick="saveAiSettings()">Save</button>
   </div>`;
 }
 function updateNavButtons(){
@@ -1856,8 +1866,69 @@ function undoDraft(n){
   rerenderSection(n); scheduleSave();
 }
 
-// Temporary stub — replaced by the real implementation in Task 5.
-function updateBatchProgress(){}
+function toggleAiPanel(){
+  const el = document.getElementById('ai-panel'); if(!el) return;
+  const show = el.style.display === 'none';
+  if(show){
+    document.getElementById('ai-url').value = CFG.aiUrl || '';
+    document.getElementById('ai-model').value = CFG.aiModel || '';
+    document.getElementById('ai-agent').value = CFG.aiAgent || '';
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+function saveAiSettings(){
+  CFG.aiUrl = document.getElementById('ai-url').value.trim() || DEFAULT_SETTINGS.aiUrl;
+  CFG.aiModel = document.getElementById('ai-model').value.trim();
+  CFG.aiAgent = document.getElementById('ai-agent').value.trim();
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(CFG)); }catch(e){}
+  aiSession = null;   // URL/model may have changed — next draft opens a fresh session
+  document.getElementById('ai-panel').style.display = 'none';
+}
+
+function toggleBatch(){
+  if(aiBatch){   // acts as Cancel: stop after current section (spec §3)
+    aiQueue.forEach(q => setDraftBtn(q, 'idle'));
+    aiQueue.length = 0; aiBatch = null;
+    updateBatchProgress(); return;
+  }
+  const targets = SECTIONS
+    .filter(s => checked.has(s.n) && (ensureFillData(s), sectionPlaceholderCount(s.n) > 0))
+    .map(s => s.n).filter(n => aiActive !== n && !aiQueue.includes(n));
+  if(!targets.length){
+    showAiBanner('No unfilled sections to draft. <button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>');
+    return;
+  }
+  if(targets.some(n => sectionEdited(n)) &&
+     !confirm('Some target sections have edits. Drafting replaces their content (one-level Undo per section). Continue?')) return;
+  aiBatch = {total: targets.length};
+  targets.forEach(n => { aiQueue.push(n); setDraftBtn(n, 'queued'); setAiErr(n, ''); });
+  updateBatchProgress();
+  processQueue();
+}
+
+function updateBatchProgress(){
+  const btn = document.getElementById('ai-batch-btn');
+  const el = document.getElementById('ai-batch-progress');
+  if(!aiBatch){
+    if(btn) btn.textContent = '✨ Draft unfilled';
+    if(el) el.textContent = '';
+    return;
+  }
+  const remaining = aiQueue.length + (aiActive ? 1 : 0);
+  if(remaining === 0){
+    aiBatch = null;
+    if(btn) btn.textContent = '✨ Draft unfilled';
+    if(el){ el.textContent = 'Batch done ✓'; el.className = 'fill-progress done'; }
+    return;
+  }
+  if(btn) btn.textContent = '✕ Cancel batch';
+  const done = aiBatch.total - remaining;
+  const sec = aiActive ? SECTIONS.find(s => s.n === aiActive) : null;
+  if(el){
+    el.className = 'fill-progress';
+    el.textContent = sec ? 'Drafting ' + sec.n + ' ' + sec.name + '… (' + (done + 1) + '/' + aiBatch.total + ')' : '';
+  }
+}
 
 const GUIDES={
   '01':"# 01 \u00b7 Version history\n\n**Layer:** Doc health \u00b7 **Effort:** Light\n**Mandatory trigger:** Schema migration \u00b7 Feature launch \u00b7 Security policy change\n\n---\n\n## Review checklist\n\n- [ ] Every schema migration that merged to production has a row\n- [ ] Every breaking change is marked Yes in the Breaking? column \u2014 not Maybe or blank\n- [ ] Breaking? = Yes rows name who was notified and link to the deprecation entry in 14\n- [ ] Version numbers follow the convention \u2014 no patch versions\n- [ ] \"What changed\" is one sentence; detail lives in the changed section\n\n---\n\n## Template\n\n```\n**Mandatory triggers:** \u2610 Schema migration merged \u00b7 \u2610 Major feature launch \u00b7 \u2610 Security policy change\n> Tick the box for each trigger type this document has ever included \u2014 a quick signal of what kinds of changes have occurred.\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v1.0 | YYYY-MM-DD | @handle | Initial document | Initial | N/A |\n```\n\n\n### Worked example \u2014 Order Management Service (e-commerce)\n\n> **Breaking change definition:** any change requiring a consumer to update their code \u2014 column rename, type change, enum value removal, endpoint removal, auth change, response shape change. When in doubt, mark Yes.\n\n**Mandatory triggers:** \u2611 Schema migration merged \u00b7 \u2611 Major feature launch \u00b7 \u2610 Security policy change\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v3.0 | 2025-11-03 | @jane.doe | Added `returns` entity; order status enum extended with `return_requested`, `returned`; 11 and 13 updated | Migration | **Yes** \u2014 consumers must handle two new enum values. Notified via #api-changes. See 14. |\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL); 10 and 11 updated | Migration | **Yes** \u2014 direct SQL `INSERT` omitting `currency_code` fails if migration runs before deploy. See 14. |\n| v1.1 | 2025-06-02 | @jane.doe | Added Stripe webhook idempotency rule to 11; added SendGrid to 04 and 12 | Feature | No \u2014 doc update only |\n| v1.0 | 2025-03-18 | @jane.doe | Initial document | Initial | N/A |\n\n---\n\n## Quick reference\n\n**What it is:** A chronological log of every meaningful change to this document \u2014 what changed, when, who changed it, and whether existing cons\u2026\n\n**When to use:** Always. Every project. No exceptions.\n\n**Skip / reduce if:** No skip condition.\n\n## What gets a row \u2014 and what doesn't\n\n**Add a row when:**\n- A schema migration merges to production\n- A major feature launches (new endpoints, new entities, new flows)\n- A security policy changes (new secret rotation, new PII classification, pen test findings actioned)\n- A section changes enough that a reader of the old version would make a wrong technical decision\n\n**Do not add a row for:**\n- Typo fixes, rewording, or formatting changes that don't affect meaning\n- Diagram cosmetic updates\n- Adding a row to 02 Review history (that's a review, not a version change)\n\n## Version numbering\n\n| Bump | When | Example |\n|------|------|---------|\n| **Major** (v2.0) | Breaking change for any consumer, or a multi-section rewrite | Removing an enum value; renaming a column |\n| **Minor** (v1.1) | Additive \u2014 doesn't break existing consumers | Nullable column added; new rule in 11 |\n| **Initial** (v1.0) | First version of the document | \u2014 |\n\nNo patch versions. If it's breaking, it's a major bump.\n\n## Valid trigger values\n\n| Value | Meaning |\n|-------|---------|\n| `Migration` | A database schema migration merged |\n| `Feature` | A new product feature launched |\n| `Security` | A security policy changed |\n| `Initial` | First version of the document |\n\n**Cross-references:** 02 Review history \u2014 reviews are separate from version history \u00b7 14 API surface \u2014 update whenever Breaking? = Yes\n\n---\n\n## Best practices\n\n- **One change per row** \u2014 if a migration adds two unrelated tables, split into two rows.\n- **One sentence in \"What changed\"** \u2014 detail lives in the section that changed.\n- **Mark Breaking? honestly** \u2014 a false No is far more damaging than an unnecessary process step. When Breaking? = Yes, follow the deprecation process in 14.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 Breaking? is honest and actionable**\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL) | Migration | **Yes** \u2014 direct SQL INSERT omitting `currency_code` fails. Notified via #api-changes. See 14. |\n\n*Why good:* Names exactly who is affected, how, and where to find the deprecation detail.",
