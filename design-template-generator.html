@@ -1599,6 +1599,86 @@ function importDocFromFile(e){
   const r=new FileReader(); r.onload=()=>importDesignDoc(String(r.result)); r.readAsText(f); e.target.value='';
 }
 
+// ── AI draft (opencode) — pure helpers ─────────────────────────────────────────
+function aiCfg(){
+  return { url: (CFG.aiUrl || 'http://127.0.0.1:4096').replace(/\/+$/, ''),
+           model: CFG.aiModel || '', agent: CFG.aiAgent || '' };
+}
+
+function extractResponseText(parts){
+  return (parts || []).filter(p => p && p.type === 'text' && p.text)
+    .map(p => p.text).join('\n').trim();
+}
+
+function stripWrappingFence(t){
+  const s = String(t || '').trim();
+  const m = s.match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+  return m ? m[1] : s;
+}
+
+// Guide content up to (excluding) the worked-example heading — same heading
+// detection idea as extractExampleTables. Capped to keep prompts bounded.
+function guideRulesExcerpt(n){
+  const md = guideMarkdown(n); if(!md) return '';
+  const lines = md.split('\n');
+  for(let i = 0; i < lines.length; i++){
+    if(/^#{2,4}\s+.*worked example/i.test(lines[i])) return lines.slice(0, i).join('\n').slice(0, 4000);
+  }
+  return md.slice(0, 4000);
+}
+
+function buildSectionPrompt(n){
+  const s = SECTIONS.find(x => x.n === n); ensureFillData(s);
+  const ctx = buildCtx();
+  return [
+    "You are filling one section of a system-design doc for the codebase in your working directory. Inspect the code; state facts, don't invent.",
+    '',
+    '## Service context',
+    'Name: ' + ctx.name,
+    'Description: ' + ctx.desc,
+    'Owner: ' + ctx.owner,
+    'Tech stack:',
+    ctx.techStackLines,
+    '',
+    '## Section rules',
+    s.hint || '',
+    guideRulesExcerpt(n),
+    '',
+    '## Current section markdown (fill the placeholders)',
+    serializeBlocks(fillData[n]),
+    '',
+    '## Output contract',
+    'Return ONLY the completed section markdown, same headings, same table columns. Keep _placeholder_ style for anything you cannot verify from code.'
+  ].join('\n');
+}
+
+// Validate + reconcile an agent response against the section's current blocks.
+// Returns {ok:true, blocks} or {ok:false, error}.
+// Tables are reconciled in order: a response table is accepted only if its
+// header signature matches the original table at the same position; otherwise
+// the original table is kept. Extra response tables are dropped; missing
+// originals are appended.
+function validateSectionResponse(n, text){
+  const s = SECTIONS.find(x => x.n === n);
+  const blocks = parseMarkdownBlocks(stripWrappingFence(text));
+  if(!blocks.length || !blocks.some(b => (b.value || b.rows))) return {ok:false, error:'Empty response'};
+  const firstText = blocks.find(b => b.type === 'text');
+  const hm = firstText && firstText.value.match(/^##\s+(.+)$/m);
+  if(!hm || normSecName(hm[1]) !== normSecName(s.name))
+    return {ok:false, error:'Response heading does not match section'};
+  const origTables = (fillData[n] || []).filter(b => b.type === 'table');
+  const merged = []; let ti = 0;
+  blocks.forEach(b => {
+    if(b.type !== 'table'){ merged.push(b); return; }
+    const orig = origTables[ti++];
+    if(orig && tableSig(b.headers) === tableSig(orig.headers)) merged.push(b);
+    else if(orig) merged.push(orig);
+    // extra table beyond the original count: dropped
+  });
+  while(ti < origTables.length) merged.push(origTables[ti++]);
+  return {ok:true, blocks: merged};
+}
+
 const GUIDES={
   '01':"# 01 \u00b7 Version history\n\n**Layer:** Doc health \u00b7 **Effort:** Light\n**Mandatory trigger:** Schema migration \u00b7 Feature launch \u00b7 Security policy change\n\n---\n\n## Review checklist\n\n- [ ] Every schema migration that merged to production has a row\n- [ ] Every breaking change is marked Yes in the Breaking? column \u2014 not Maybe or blank\n- [ ] Breaking? = Yes rows name who was notified and link to the deprecation entry in 14\n- [ ] Version numbers follow the convention \u2014 no patch versions\n- [ ] \"What changed\" is one sentence; detail lives in the changed section\n\n---\n\n## Template\n\n```\n**Mandatory triggers:** \u2610 Schema migration merged \u00b7 \u2610 Major feature launch \u00b7 \u2610 Security policy change\n> Tick the box for each trigger type this document has ever included \u2014 a quick signal of what kinds of changes have occurred.\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v1.0 | YYYY-MM-DD | @handle | Initial document | Initial | N/A |\n```\n\n\n### Worked example \u2014 Order Management Service (e-commerce)\n\n> **Breaking change definition:** any change requiring a consumer to update their code \u2014 column rename, type change, enum value removal, endpoint removal, auth change, response shape change. When in doubt, mark Yes.\n\n**Mandatory triggers:** \u2611 Schema migration merged \u00b7 \u2611 Major feature launch \u00b7 \u2610 Security policy change\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v3.0 | 2025-11-03 | @jane.doe | Added `returns` entity; order status enum extended with `return_requested`, `returned`; 11 and 13 updated | Migration | **Yes** \u2014 consumers must handle two new enum values. Notified via #api-changes. See 14. |\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL); 10 and 11 updated | Migration | **Yes** \u2014 direct SQL `INSERT` omitting `currency_code` fails if migration runs before deploy. See 14. |\n| v1.1 | 2025-06-02 | @jane.doe | Added Stripe webhook idempotency rule to 11; added SendGrid to 04 and 12 | Feature | No \u2014 doc update only |\n| v1.0 | 2025-03-18 | @jane.doe | Initial document | Initial | N/A |\n\n---\n\n## Quick reference\n\n**What it is:** A chronological log of every meaningful change to this document \u2014 what changed, when, who changed it, and whether existing cons\u2026\n\n**When to use:** Always. Every project. No exceptions.\n\n**Skip / reduce if:** No skip condition.\n\n## What gets a row \u2014 and what doesn't\n\n**Add a row when:**\n- A schema migration merges to production\n- A major feature launches (new endpoints, new entities, new flows)\n- A security policy changes (new secret rotation, new PII classification, pen test findings actioned)\n- A section changes enough that a reader of the old version would make a wrong technical decision\n\n**Do not add a row for:**\n- Typo fixes, rewording, or formatting changes that don't affect meaning\n- Diagram cosmetic updates\n- Adding a row to 02 Review history (that's a review, not a version change)\n\n## Version numbering\n\n| Bump | When | Example |\n|------|------|---------|\n| **Major** (v2.0) | Breaking change for any consumer, or a multi-section rewrite | Removing an enum value; renaming a column |\n| **Minor** (v1.1) | Additive \u2014 doesn't break existing consumers | Nullable column added; new rule in 11 |\n| **Initial** (v1.0) | First version of the document | \u2014 |\n\nNo patch versions. If it's breaking, it's a major bump.\n\n## Valid trigger values\n\n| Value | Meaning |\n|-------|---------|\n| `Migration` | A database schema migration merged |\n| `Feature` | A new product feature launched |\n| `Security` | A security policy changed |\n| `Initial` | First version of the document |\n\n**Cross-references:** 02 Review history \u2014 reviews are separate from version history \u00b7 14 API surface \u2014 update whenever Breaking? = Yes\n\n---\n\n## Best practices\n\n- **One change per row** \u2014 if a migration adds two unrelated tables, split into two rows.\n- **One sentence in \"What changed\"** \u2014 detail lives in the section that changed.\n- **Mark Breaking? honestly** \u2014 a false No is far more damaging than an unnecessary process step. When Breaking? = Yes, follow the deprecation process in 14.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 Breaking? is honest and actionable**\n\n| Version | Date | Author | What changed | Trigger | Breaking? |\n|---------|------|--------|--------------|---------|-----------|\n| v2.0 | 2025-09-14 | @ali.h | `currency_code` added to `orders` (NOT NULL) | Migration | **Yes** \u2014 direct SQL INSERT omitting `currency_code` fails. Notified via #api-changes. See 14. |\n\n*Why good:* Names exactly who is affected, how, and where to find the deprecation detail.",
   '02':"# 02 \u00b7 Review history\n\n**Layer:** Doc health \u00b7 **Effort:** Light\n**Mandatory trigger:** Schema migration \u00b7 Feature launch \u00b7 Security policy change\n\n---\n\n## Review checklist\n\n- [ ] The reviewer is not the same person who made the last edit\n- [ ] Status is one of three valid values: Approved, Needs update, Approved after fixes\n- [ ] Every \"Needs update\" row has a matching \"Approved after fixes\" row, or is still open with an assignee and due date\n- [ ] \"Next review due\" is filled \u2014 either a date or a trigger event\n- [ ] Notes are specific enough that someone else can act without asking\n\n---\n\n## Template\n\n```markdown\n**Doc health:** `\u2713 Up to date` / `\u26a0 Needs update`\n**Last reviewed:** YYYY-MM-DD\n**Next review due:** YYYY-MM-DD \u00b7 or \u00b7 on [trigger event]\n\n| Date | Reviewer | Status | Notes |\n|------|----------|--------|-------|\n| YYYY-MM-DD | @handle | Approved / Needs update / Approved after fixes | What was checked or what was found |\n```\n\n\n### Worked example \u2014 Order Management Service (e-commerce)\n\n**Doc health:** `\u2713 Up to date`\n**Last reviewed:** 2025-11-20\n**Next review due:** on next schema migration or feature launch\n\n| Date | Reviewer | Status | Notes |\n|------|----------|--------|-------|\n| 2025-11-20 | @alex.kim | Approved after fixes | Post v3.0 migration. Found 13 missing an index entry. Fixed and re-verified. All other sections accurate. |\n| 2025-09-21 | @ali.h | Approved after fixes | Fixed 10 and 11 as flagged by @dave.t on 2025-09-14. Re-verified both sections against code. |\n| 2025-09-14 | @dave.t | Needs update | 10 and 11 missing `currency_code` rules after v2.0 migration. **Assigned to @ali.h, due 2025-09-21.** |\n| 2025-03-18 | @jane.doe | Approved | First review at initial release. All sections verified against codebase. |\n\n> **The key pattern:** `Needs update` stays open and records what's wrong. The `Approved after fixes` row above it closes it. Never delete the original \u2014 the pair shows how long the doc was unreliable and who resolved it.\n\n---\n\n## Quick reference\n\n**What it is:** A record of who verified the whole document is still accurate, when they did it, and their verdict.\n\n**When to use:** Always. Required for any document used as a handoff or onboarding artifact.\n\n**Skip / reduce if:** No skip condition.\n\n## Review vs edit\n\n| Action | Goes in |\n|--------|---------|\n| You changed content in the doc | 01 Version history |\n| You read the whole doc and confirmed it's accurate | 02 Review history |\n| You reviewed, found issues, fixed them, re-verified | Both \u2014 fix in 01, approval in 02 |\n\nThe reviewer must not be the person who made the last edit.\n\n## Valid status values\n\n| Status | Meaning |\n|--------|---------|\n| `Approved` | Whole doc reviewed. All sections accurate. No changes needed. |\n| `Needs update` | Found stale or incorrect content. **Changes still outstanding.** |\n| `Approved after fixes` | Found issues, fixes made, re-verified. Doc is now accurate. |\n\n`Needs update` means the doc is currently unreliable. Resolve within one sprint.\n\n## When status = Needs update\n\n1. **Record what's stale** in Notes \u2014 specific enough that someone else can fix it without asking.\n2. **Fix it or assign it** \u2014 fix immediately (preferred) or create a ticket and tag the owner.\n3. **Close with a new row** \u2014 status `Approved after fixes`, noting which sections were re-verified.\n4. **Update 01** \u2014 a corrected section is a doc edit and belongs in the version history.\n\n## Next review due field\n\nTwo valid formats \u2014 use whichever fits your team:\n- **Event-based:** `on next schema migration or feature launch`\n- **Date-based:** `2026-03-01`\n\nAlways update this field when you add a review row.\n\n**Cross-references:** 01 Version history \u2014 edits go there, reviews go here\n\n---\n\n## Best practices\n\n- Reviewer must not be the last editor.\n- One row per full review. A targeted fix row is the exception \u2014 note which sections were re-verified.\n\n---\n\n## What good looks like\n\n**\u2713 Good \u2014 Notes are specific and actionable**\n\n| Date | Reviewer | Status | Notes |\n|------|----------|--------|-------|\n| 2025-09-14 | @dave.t | Needs update | Section 10 missing `currency_code` validation rules for FE, API, and DB. Section 11 missing corresponding pricing rule. **Assigned to @ali.h, due 2025-09-21.** |\n\n*Why good:* Specifies which sections, which fields, who owns the fix, and when it's due. Someone else can act on this without asking.",
@@ -2107,6 +2187,9 @@ const DEFAULT_SETTINGS = {
   runbookBase:'',
   separator:  '---',
   techLine:   'on',
+  aiUrl:      'http://127.0.0.1:4096',
+  aiModel:    '',   // blank = server default; format "provider/model"
+  aiAgent:    '',   // blank = default agent
 };
 
 let CFG = {...DEFAULT_SETTINGS};
