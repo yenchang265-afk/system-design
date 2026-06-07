@@ -1652,12 +1652,36 @@ function buildSectionPrompt(n){
   ].join('\n');
 }
 
+// Anchor each table to the nearest heading above it, so same-signature tables
+// (e.g. the two entity tables in section 13) can't be silently swapped. Bold
+// entity labels (**`users`**) act as headings here — that's what distinguishes
+// the two identical `column|type|description|constraints` tables in 13.
+function tableAnchors(blocks){
+  const out = []; let last = '';
+  (blocks || []).forEach(b => {
+    if(b.type === 'text'){
+      const hs = b.value.match(/^(?:#{2,4}\s+.+|\*\*.+?\*\*.*)$/gm);
+      if(hs && hs.length){
+        const h = hs[hs.length - 1];
+        const bold = h.match(/^\s*\*\*(.+?)\*\*/); // bold entity label → use only the label
+        last = (bold ? bold[1] : h.replace(/^#+\s*/, ''))
+          .replace(/[`_*]/g, '').trim().toLowerCase();
+      }
+    } else if(b.type === 'table'){
+      out.push(last);
+    }
+  });
+  return out;
+}
+
 // Validate + reconcile an agent response against the section's current blocks.
-// Returns {ok:true, blocks} or {ok:false, error}.
+// Returns {ok:true, blocks} (optionally {warning}) or {ok:false, error}.
 // Tables are reconciled in order: a response table is accepted only if its
-// header signature matches the original table at the same position; otherwise
-// the original table is kept. Extra response tables are dropped; missing
-// originals are appended.
+// header signature matches the original at the same position AND their heading
+// anchors agree (or either anchor is blank). A signature match with conflicting
+// non-blank anchors is treated as a suspected reorder — the original table is
+// kept and a warning is surfaced rather than silently accepting a wrong merge.
+// Extra response tables are dropped; missing originals are appended.
 function validateSectionResponse(n, text){
   const s = SECTIONS.find(x => x.n === n);
   const blocks = parseMarkdownBlocks(stripWrappingFence(text));
@@ -1666,17 +1690,28 @@ function validateSectionResponse(n, text){
   const hm = firstText && firstText.value.match(/^##\s+(.+)$/m);
   if(!hm || normSecName(hm[1]) !== normSecName(s.name))
     return {ok:false, error:'Response heading does not match section'};
+  // Strip any agent preamble before the matched heading so it can't leak into
+  // merged content. Response-local mutation only — fillData is never touched.
+  firstText.value = firstText.value.slice(hm.index);
+  const origAnchors = tableAnchors(fillData[n] || []);
+  const respAnchors = tableAnchors(blocks);
   const origTables = (fillData[n] || []).filter(b => b.type === 'table');
-  const merged = []; let ti = 0;
+  const merged = []; let ti = 0; let ri = 0; let kept = 0;
   blocks.forEach(b => {
     if(b.type !== 'table'){ merged.push(b); return; }
-    const orig = origTables[ti++];
-    if(orig && tableSig(b.headers) === tableSig(orig.headers)) merged.push(b);
-    else if(orig) merged.push(orig);
-    // extra table beyond the original count: dropped
+    const orig = origTables[ti];
+    const oa = origAnchors[ti], ra = respAnchors[ri];
+    ti++; const myRi = ri++;
+    if(!orig) return; // extra table beyond the original count: dropped
+    if(tableSig(b.headers) !== tableSig(orig.headers)){ merged.push(orig); return; }
+    if(oa === ra || !oa || !ra){ merged.push(b); return; }
+    // sig matches but anchors conflict → suspected reorder; keep original.
+    merged.push(orig); kept++;
   });
   while(ti < origTables.length) merged.push(origTables[ti++]);
-  return {ok:true, blocks: merged};
+  const res = {ok:true, blocks: merged};
+  if(kept > 0) res.warning = kept + ' table(s) kept from template — response tables appeared reordered';
+  return res;
 }
 
 const GUIDES={
