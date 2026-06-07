@@ -1889,7 +1889,10 @@ function toggleBatch(){
   if(aiBatch){   // acts as Cancel: stop after current section (spec §3)
     aiQueue.forEach(q => setDraftBtn(q, 'idle'));
     aiQueue.length = 0; aiBatch = null;
-    updateBatchProgress(); return;
+    updateBatchProgress();
+    showAiBanner((aiActive ? 'Cancelling after section ' + aiActive + ' finishes.' : 'Batch cancelled.') +
+      ' <button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>');
+    return;
   }
   const targets = SECTIONS
     .filter(s => checked.has(s.n) && (ensureFillData(s), sectionPlaceholderCount(s.n) > 0))
