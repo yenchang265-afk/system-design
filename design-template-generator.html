@@ -1428,12 +1428,15 @@ function renderFillSectionHtml(s){
   const body=fillData[s.n].map((b,bi)=>renderBlockHtml(s.n,bi,b)).join('');
   const guide=GUIDES[s.n]?`<button class="fill-guide" onclick="openGuide('${s.n}')">Guide ↗</button>`:'';
   const example=GUIDES[s.n]?`<button class="fill-example" onclick="loadExample('${s.n}')" title="Fill this section's tables with the worked example from the guide">Load example</button>`:'';
+  const draft=`<button class="fill-draft" id="ai-draft-btn-${s.n}" onclick="enqueueDraft('${s.n}')" title="Draft this section from the codebase via opencode">✨ Draft</button>`;
+  const undo=aiUndo[s.n]?`<button class="fill-draft" onclick="undoDraft('${s.n}')" title="Revert the last AI draft">↩ Undo</button>`:'';
+  const err=`<span class="ai-err" id="ai-err-${s.n}"></span>`;
   const ph=sectionPlaceholderCount(s.n);
   const badge=`<span class="fill-badge ${ph>0?'needs':'done'}" id="fill-badge-${s.n}">${ph>0?ph+' to fill':'✓ ready'}</span>`;
   const collapsed=collapsedSecs.has(s.n)?' collapsed':'';
   const hidden=(onlyUnfilled&&ph===0)?' style="display:none"':'';
   return `<div class="fill-sec${collapsed}" id="fill-sec-${s.n}"${hidden}>
-    <div class="fill-sec-hd"><span class="fill-sec-toggle" onclick="toggleCollapse('${s.n}')"><span class="fill-chevron">▾</span><span class="fill-sec-num">${s.n}</span><span class="fill-sec-name">${escHtml(s.name)}</span></span>${badge}${example}${guide}<button class="fill-reset" onclick="resetFillSection('${s.n}')">Reset</button></div>
+    <div class="fill-sec-hd"><span class="fill-sec-toggle" onclick="toggleCollapse('${s.n}')"><span class="fill-chevron">▾</span><span class="fill-sec-num">${s.n}</span><span class="fill-sec-name">${escHtml(s.name)}</span></span>${badge}${err}${draft}${undo}${example}${guide}<button class="fill-reset" onclick="resetFillSection('${s.n}')">Reset</button></div>
     <div class="fill-sec-body">${body}</div></div>`;
 }
 function renderBlockHtml(n,bi,b){
