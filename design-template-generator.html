@@ -1844,6 +1844,7 @@ async function processQueue(){
     fillData[n] = v.blocks;
     rerenderSection(n); scheduleSave();
     hideAiBanner();
+    if(v.warning) setAiErr(n, v.warning);   // merge succeeded but some tables were kept from template — surface it
   }catch(e){
     if(e instanceof TypeError) showAiBanner(connectHelpHtml());
     setAiErr(n, friendlyAiError(e));
