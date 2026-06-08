@@ -296,6 +296,16 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
 .fill-progress{font-size:11px;font-weight:500;margin-left:auto;align-self:center}
 .fill-progress.needs{color:var(--amber-text)}
 .fill-progress.done{color:var(--green-text)}
+/* AI DRAFT */
+.fill-draft{font-size:11px;padding:3px 8px;border:0.5px solid var(--blue-border);border-radius:6px;background:var(--blue-bg);color:var(--blue-text);cursor:pointer;font-family:var(--font);white-space:nowrap}
+.fill-draft:hover{opacity:.85}
+.fill-draft:disabled{opacity:.5;cursor:wait}
+.ai-err{font-size:11px;color:var(--red-text)}
+.ai-banner{padding:10px 12px;margin-bottom:14px;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--r);font-size:12px;color:var(--amber-text);line-height:1.6}
+.ai-banner code{font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 5px;border-radius:3px}
+.ai-panel{padding:12px;margin-bottom:14px;border:0.5px solid var(--border2);border-radius:var(--rl);background:var(--bg2);display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ai-panel label{margin:0 0 3px;font-size:9px}
+.ai-panel input{padding:5px 8px;font-size:12px;border:0.5px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font)}
 </style>
 </head>
 <body>
@@ -1387,7 +1397,17 @@ function renderFillNav(){
   return `<div class="fill-nav">
     <button class="fill-nav-btn" id="fill-collapse-btn" onclick="toggleAllCollapsed()">Expand all</button>
     <button class="fill-nav-btn" id="fill-unfilled-btn" onclick="toggleOnlyUnfilled()">Only unfilled</button>
+    <button class="fill-nav-btn" id="ai-batch-btn" onclick="toggleBatch()">✨ Draft unfilled</button>
+    <button class="fill-nav-btn" onclick="toggleAiPanel()">AI settings</button>
+    <span class="fill-progress" id="ai-batch-progress"></span>
     <span class="fill-progress" id="fill-progress"></span>
+  </div>
+  <div class="ai-banner" id="ai-banner" style="display:none"></div>
+  <div class="ai-panel" id="ai-panel" style="display:none">
+    <div><label>Server URL</label><br><input id="ai-url" style="width:210px" placeholder="http://127.0.0.1:4096"></div>
+    <div><label>Model (optional, provider/model)</label><br><input id="ai-model" style="width:180px" placeholder="server default"></div>
+    <div><label>Agent (optional)</label><br><input id="ai-agent" style="width:110px" placeholder="default"></div>
+    <button class="fill-nav-btn" onclick="saveAiSettings()">Save</button>
   </div>`;
 }
 function updateNavButtons(){
@@ -1418,12 +1438,15 @@ function renderFillSectionHtml(s){
   const body=fillData[s.n].map((b,bi)=>renderBlockHtml(s.n,bi,b)).join('');
   const guide=GUIDES[s.n]?`<button class="fill-guide" onclick="openGuide('${s.n}')">Guide ↗</button>`:'';
   const example=GUIDES[s.n]?`<button class="fill-example" onclick="loadExample('${s.n}')" title="Fill this section's tables with the worked example from the guide">Load example</button>`:'';
+  const draft=`<button class="fill-draft" id="ai-draft-btn-${s.n}" onclick="enqueueDraft('${s.n}')" title="Draft this section from the codebase via opencode">✨ Draft</button>`;
+  const undo=aiUndo[s.n]?`<button class="fill-draft" onclick="undoDraft('${s.n}')" title="Revert the last AI draft">↩ Undo</button>`:'';
+  const err=`<span class="ai-err" id="ai-err-${s.n}"></span>`;
   const ph=sectionPlaceholderCount(s.n);
   const badge=`<span class="fill-badge ${ph>0?'needs':'done'}" id="fill-badge-${s.n}">${ph>0?ph+' to fill':'✓ ready'}</span>`;
   const collapsed=collapsedSecs.has(s.n)?' collapsed':'';
   const hidden=(onlyUnfilled&&ph===0)?' style="display:none"':'';
   return `<div class="fill-sec${collapsed}" id="fill-sec-${s.n}"${hidden}>
-    <div class="fill-sec-hd"><span class="fill-sec-toggle" onclick="toggleCollapse('${s.n}')"><span class="fill-chevron">▾</span><span class="fill-sec-num">${s.n}</span><span class="fill-sec-name">${escHtml(s.name)}</span></span>${badge}${example}${guide}<button class="fill-reset" onclick="resetFillSection('${s.n}')">Reset</button></div>
+    <div class="fill-sec-hd"><span class="fill-sec-toggle" onclick="toggleCollapse('${s.n}')"><span class="fill-chevron">▾</span><span class="fill-sec-num">${s.n}</span><span class="fill-sec-name">${escHtml(s.name)}</span></span>${badge}${err}${draft}${undo}${example}${guide}<button class="fill-reset" onclick="resetFillSection('${s.n}')">Reset</button></div>
     <div class="fill-sec-body">${body}</div></div>`;
 }
 function renderBlockHtml(n,bi,b){
@@ -1597,6 +1620,318 @@ function importDesignDoc(text){
 function importDocFromFile(e){
   const f=e.target.files&&e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=()=>importDesignDoc(String(r.result)); r.readAsText(f); e.target.value='';
+}
+
+// ── AI draft (opencode) — pure helpers ─────────────────────────────────────────
+function aiCfg(){
+  return { url: (CFG.aiUrl || 'http://127.0.0.1:4096').replace(/\/+$/, ''),
+           model: CFG.aiModel || '', agent: CFG.aiAgent || '' };
+}
+
+function extractResponseText(parts){
+  return (parts || []).filter(p => p && p.type === 'text' && p.text)
+    .map(p => p.text).join('\n').trim();
+}
+
+function stripWrappingFence(t){
+  const s = String(t || '').trim();
+  const m = s.match(/^```[^\n]*\n([\s\S]*?)\n?```$/);
+  return m ? m[1] : s;
+}
+
+// Guide content up to (excluding) the worked-example heading — same heading
+// detection idea as extractExampleTables. Capped to keep prompts bounded.
+function guideRulesExcerpt(n){
+  const md = guideMarkdown(n); if(!md) return '';
+  const lines = md.split('\n');
+  for(let i = 0; i < lines.length; i++){
+    if(/^#{2,4}\s+.*worked example/i.test(lines[i])) return lines.slice(0, i).join('\n').slice(0, 4000);
+  }
+  return md.slice(0, 4000);
+}
+
+function buildSectionPrompt(n){
+  const s = SECTIONS.find(x => x.n === n); ensureFillData(s);
+  const ctx = buildCtx();
+  return [
+    "You are filling one section of a system-design doc for the codebase in your working directory. Inspect the code; state facts, don't invent.",
+    '',
+    '## Service context',
+    'Name: ' + ctx.name,
+    'Description: ' + ctx.desc,
+    'Owner: ' + ctx.owner,
+    'Tech stack:',
+    ctx.techStackLines,
+    '',
+    '## Section rules',
+    s.hint || '',
+    guideRulesExcerpt(n),
+    '',
+    '## Current section markdown (fill the placeholders)',
+    serializeBlocks(fillData[n]),
+    '',
+    '## Output contract',
+    'Return ONLY the completed section markdown, same headings, same table columns. Keep _placeholder_ style for anything you cannot verify from code.'
+  ].join('\n');
+}
+
+// Anchor each table to the nearest structural marker above it, so same-signature
+// tables (e.g. the two entity tables in section 13) can't be silently swapped.
+// The anchor is the nearest `#{2,4}` heading above the table — UNLESS an
+// inline-code bold label (**`users`**) appears within that heading's region, in
+// which case the label is a finer anchor. Plain prose bold lead-ins (**Note:**,
+// **Important:**, **Why good:**) are NOT anchors — treating them as such caused a
+// regression where an ordinary bold note near a table shifted the anchor and the
+// legitimately filled table was discarded. A new heading resets the code label so
+// a label only applies inside the heading region it was declared in.
+function tableAnchors(blocks){
+  const HEAD = /^#{2,4}\s+.+$/gm;          // markdown heading
+  const CODE = /^\s*\*\*`([^`]+)`\*\*/gm;  // inline-code bold label, e.g. **`users`**
+  const norm = s => String(s).replace(/^#+\s*/, '').replace(/[`_*]/g, '').trim().toLowerCase();
+  const out = []; let lastHeading = ''; let lastCodeLabel = '';
+  (blocks || []).forEach(b => {
+    if(b.type === 'text'){
+      const heads = [...b.value.matchAll(HEAD)];
+      const codes = [...b.value.matchAll(CODE)];
+      // A heading resets the code label, but a label appearing AFTER the last
+      // heading in the same block still applies — so honour only code labels that
+      // come after the last heading's position in this block.
+      const lastHeadIdx = heads.length ? heads[heads.length - 1].index : -1;
+      if(heads.length){ lastHeading = norm(heads[heads.length - 1][0]); lastCodeLabel = ''; }
+      const validCodes = codes.filter(c => c.index > lastHeadIdx);
+      if(validCodes.length) lastCodeLabel = norm(validCodes[validCodes.length - 1][1]);
+    } else if(b.type === 'table'){
+      out.push(lastCodeLabel || lastHeading);
+    }
+  });
+  return out;
+}
+
+// Validate + reconcile an agent response against the section's current blocks.
+// Returns {ok:true, blocks} (optionally {warning}) or {ok:false, error}.
+// Tables are reconciled in order: a response table is accepted only if its
+// header signature matches the original at the same position AND their heading
+// anchors agree (or either anchor is blank). A signature match with conflicting
+// non-blank anchors is treated as a suspected reorder — the original table is
+// kept and a warning is surfaced rather than silently accepting a wrong merge.
+// Extra response tables are dropped; missing originals are appended.
+function validateSectionResponse(n, text){
+  const s = SECTIONS.find(x => x.n === n);
+  const blocks = parseMarkdownBlocks(stripWrappingFence(text));
+  if(!blocks.length || !blocks.some(b => (b.value || b.rows))) return {ok:false, error:'Empty response'};
+  const firstText = blocks.find(b => b.type === 'text');
+  const hm = firstText && firstText.value.match(/^##\s+(.+)$/m);
+  if(!hm || normSecName(hm[1]) !== normSecName(s.name))
+    return {ok:false, error:'Response heading does not match section'};
+  // Strip any agent preamble before the matched heading so it can't leak into
+  // merged content. Response-local mutation only — fillData is never touched.
+  firstText.value = firstText.value.slice(hm.index);
+  const origAnchors = tableAnchors(fillData[n] || []);
+  const respAnchors = tableAnchors(blocks);
+  const origTables = (fillData[n] || []).filter(b => b.type === 'table');
+  const merged = []; let ti = 0; let ri = 0; let kept = 0;
+  blocks.forEach(b => {
+    if(b.type !== 'table'){ merged.push(b); return; }
+    const orig = origTables[ti];
+    const oa = origAnchors[ti], ra = respAnchors[ri];
+    ti++; ri++;
+    if(!orig) return; // extra table beyond the original count: dropped
+    if(tableSig(b.headers) !== tableSig(orig.headers)){ merged.push(orig); return; }
+    if(oa === ra || !oa || !ra){ merged.push(b); return; }
+    // sig matches but anchors conflict → suspected reorder; keep original.
+    merged.push(orig); kept++;
+  });
+  while(ti < origTables.length) merged.push(origTables[ti++]);
+  const res = {ok:true, blocks: merged};
+  if(kept > 0) res.warning = kept + ' table(s) kept from template — response tables appeared reordered';
+  return res;
+}
+
+// ── AI draft (opencode) — HTTP client + queue ──────────────────────────────────
+let aiSession = null;        // session id, memory only (stale after reload is worthless)
+let aiQueue = [];            // section numbers waiting (FIFO — one in-flight message per session)
+let aiActive = null;         // section number currently drafting
+let aiBatch = null;          // {total} while "Draft unfilled" batch runs
+let aiUndo = {};             // sectionN -> previous blocks (one level, memory only)
+let _aiTimers = {};          // sectionN -> elapsed-seconds interval
+
+function launchCmd(){
+  const origin = (location.protocol === 'file:' || location.origin === 'null') ? 'null' : location.origin;
+  return 'opencode serve --port 4096 --cors ' + origin;
+}
+function connectHelpHtml(){
+  return 'Cannot reach opencode at <code>' + escHtml(aiCfg().url) + '</code>. ' +
+    'From your service repo root run: <code>' + escHtml(launchCmd()) + '</code> ' +
+    '<button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>';
+}
+function showAiBanner(html){ const el = document.getElementById('ai-banner'); if(el){ el.innerHTML = html; el.style.display = 'block'; } }
+function hideAiBanner(){ const el = document.getElementById('ai-banner'); if(el) el.style.display = 'none'; }
+
+function friendlyAiError(e){
+  if(e instanceof TypeError) return 'Server unreachable or CORS blocked — see banner';
+  return ((e && e.message) || 'Unknown error').slice(0, 160);
+}
+
+async function aiFetch(path, opts){
+  const r = await fetch(aiCfg().url + path, opts);
+  if(!r.ok) throw new Error('Server error (' + r.status + '): ' + (await r.text()).slice(0, 200));
+  return r.json();
+}
+
+async function aiEnsureSession(){
+  if(aiSession) return aiSession;
+  await aiFetch('/doc', {method: 'GET'});   // cheap connectivity ping (spec §1)
+  const s = await aiFetch('/session', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({title: (val('svc-name') || 'design') + ' design doc'})
+  });
+  aiSession = s.id;
+  return aiSession;
+}
+
+async function aiSendMessage(prompt){
+  const id = await aiEnsureSession();
+  const cfg = aiCfg();
+  const body = {parts: [{type: 'text', text: prompt}]};
+  if(cfg.model){
+    const i = cfg.model.indexOf('/');
+    body.model = i > 0 ? {providerID: cfg.model.slice(0, i), modelID: cfg.model.slice(i + 1)} : cfg.model;
+  }
+  if(cfg.agent) body.agent = cfg.agent;
+  const data = await aiFetch('/session/' + id + '/message', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  });
+  return extractResponseText(data.parts || []);
+}
+
+function setDraftBtn(n, state){
+  const b = document.getElementById('ai-draft-btn-' + n); if(!b) return;
+  if(state === 'idle'){ b.disabled = false; b.textContent = '✨ Draft'; }
+  else if(state === 'queued'){ b.disabled = true; b.textContent = 'Queued'; }
+  else { b.disabled = true; b.textContent = 'Drafting…'; }
+  const sec = document.getElementById('fill-sec-' + n);
+  if(sec) sec.style.opacity = state === 'busy' ? '.6' : '';   // dim while drafting (spec §3)
+}
+function setAiErr(n, msg){ const el = document.getElementById('ai-err-' + n); if(el) el.textContent = msg || ''; }
+function startElapsed(n){
+  const t0 = Date.now();
+  _aiTimers[n] = setInterval(() => {
+    const b = document.getElementById('ai-draft-btn-' + n);
+    if(b) b.textContent = 'Drafting… ' + Math.round((Date.now() - t0) / 1000) + 's';
+  }, 1000);
+}
+function stopElapsed(n){ clearInterval(_aiTimers[n]); delete _aiTimers[n]; }
+
+function enqueueDraft(n){
+  n = String(n);
+  if(aiActive === n || aiQueue.includes(n)) return;
+  const s = SECTIONS.find(x => x.n === n); if(!s) return;
+  ensureFillData(s);
+  if(sectionEdited(n) && !confirm('Draft over section ' + n + '? Current content will be replaced (one-level Undo available).')) return;
+  aiQueue.push(n); setDraftBtn(n, 'queued'); setAiErr(n, '');
+  processQueue();
+}
+
+async function processQueue(){
+  if(aiActive || !aiQueue.length) return;
+  const n = aiQueue.shift(); aiActive = n;
+  setDraftBtn(n, 'busy'); startElapsed(n); updateBatchProgress();
+  try{
+    const text = await aiSendMessage(buildSectionPrompt(n));
+    const v = validateSectionResponse(n, text);
+    if(!v.ok) throw new Error("Response didn't match section format: " + v.error);
+    aiUndo[n] = (fillData[n] || []).map(b => JSON.parse(JSON.stringify(b)));  // deep snapshot — reconcile may share block objects with v.blocks
+    fillData[n] = v.blocks;
+    rerenderSection(n); scheduleSave();
+    hideAiBanner();
+    if(v.warning) setAiErr(n, v.warning);   // merge succeeded but some tables were kept from template — surface it
+  }catch(e){
+    if(e instanceof TypeError) showAiBanner(connectHelpHtml());
+    setAiErr(n, friendlyAiError(e));
+    if(aiBatch){
+      aiQueue.forEach(q => setDraftBtn(q, 'idle'));
+      aiQueue.length = 0; aiBatch = null;
+      showAiBanner('Batch stopped at section ' + n + ': ' + escHtml(friendlyAiError(e)) +
+        ' <button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>');
+    }
+  }finally{
+    stopElapsed(n); aiActive = null; setDraftBtn(n, 'idle'); updateBatchProgress();
+    processQueue();
+  }
+}
+
+function undoDraft(n){
+  n = String(n);
+  if(!aiUndo[n]) return;
+  fillData[n] = aiUndo[n]; delete aiUndo[n];
+  rerenderSection(n); scheduleSave();
+}
+
+function toggleAiPanel(){
+  const el = document.getElementById('ai-panel'); if(!el) return;
+  const show = el.style.display === 'none';
+  if(show){
+    document.getElementById('ai-url').value = CFG.aiUrl || '';
+    document.getElementById('ai-model').value = CFG.aiModel || '';
+    document.getElementById('ai-agent').value = CFG.aiAgent || '';
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+function saveAiSettings(){
+  CFG.aiUrl = document.getElementById('ai-url').value.trim() || DEFAULT_SETTINGS.aiUrl;
+  CFG.aiModel = document.getElementById('ai-model').value.trim();
+  CFG.aiAgent = document.getElementById('ai-agent').value.trim();
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(CFG)); }catch(e){}
+  aiSession = null;   // URL/model may have changed — next draft opens a fresh session
+  document.getElementById('ai-panel').style.display = 'none';
+}
+
+function toggleBatch(){
+  if(aiBatch){   // acts as Cancel: stop after current section (spec §3)
+    aiQueue.forEach(q => setDraftBtn(q, 'idle'));
+    aiQueue.length = 0; aiBatch = null;
+    updateBatchProgress();
+    showAiBanner((aiActive ? 'Cancelling after section ' + aiActive + ' finishes.' : 'Batch cancelled.') +
+      ' <button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>');
+    return;
+  }
+  const targets = SECTIONS
+    .filter(s => checked.has(s.n) && (ensureFillData(s), sectionPlaceholderCount(s.n) > 0))
+    .map(s => s.n).filter(n => aiActive !== n && !aiQueue.includes(n));
+  if(!targets.length){
+    showAiBanner('No unfilled sections to draft. <button class="mini-btn" onclick="hideAiBanner()" style="float:right">✕</button>');
+    return;
+  }
+  if(targets.some(n => sectionEdited(n)) &&
+     !confirm('Some target sections have edits. Drafting replaces their content (one-level Undo per section). Continue?')) return;
+  aiBatch = {total: targets.length};
+  targets.forEach(n => { aiQueue.push(n); setDraftBtn(n, 'queued'); setAiErr(n, ''); });
+  updateBatchProgress();
+  processQueue();
+}
+
+function updateBatchProgress(){
+  const btn = document.getElementById('ai-batch-btn');
+  const el = document.getElementById('ai-batch-progress');
+  if(!aiBatch){
+    if(btn) btn.textContent = '✨ Draft unfilled';
+    if(el) el.textContent = '';
+    return;
+  }
+  const remaining = aiQueue.length + (aiActive ? 1 : 0);
+  if(remaining === 0){
+    aiBatch = null;
+    if(btn) btn.textContent = '✨ Draft unfilled';
+    if(el){ el.textContent = 'Batch done ✓'; el.className = 'fill-progress done'; }
+    return;
+  }
+  if(btn) btn.textContent = '✕ Cancel batch';
+  const done = aiBatch.total - remaining;
+  const sec = aiActive ? SECTIONS.find(s => s.n === aiActive) : null;
+  if(el){
+    el.className = 'fill-progress';
+    el.textContent = sec ? 'Drafting ' + sec.n + ' ' + sec.name + '… (' + (done + 1) + '/' + aiBatch.total + ')' : '';
+  }
 }
 
 const GUIDES={
@@ -2107,6 +2442,9 @@ const DEFAULT_SETTINGS = {
   runbookBase:'',
   separator:  '---',
   techLine:   'on',
+  aiUrl:      'http://127.0.0.1:4096',
+  aiModel:    '',   // blank = server default; format "provider/model"
+  aiAgent:    '',   // blank = default agent
 };
 
 let CFG = {...DEFAULT_SETTINGS};
