@@ -1054,11 +1054,20 @@ function removeCustomTech(val){
   renderPreview();
 }
 
+function removeCustomTechAt(i){
+  customTechs = customTechs.filter((_,idx)=>idx!==i);
+  renderCustomTechs();
+  renderPreview();
+}
+
 function renderCustomTechs(){
   const el = document.getElementById('tp-custom');
-  el.innerHTML = customTechs.map(t=>
+  if(!el) return;
+  // Custom tech names are user input — escape before injecting, and key the
+  // remove handler by index so apostrophes/markup can't break out (XSS).
+  el.innerHTML = customTechs.map((t,i)=>
     `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;border:0.5px solid var(--border2);border-radius:20px;background:var(--bg2);color:var(--text2)">
-      ${t}<button onclick="removeCustomTech('${t.replace(/'/g,"\'")}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:0">✕</button>
+      ${escHtml(t)}<button onclick="removeCustomTechAt(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:0">✕</button>
     </span>`
   ).join('');
 }
@@ -1119,12 +1128,6 @@ const TECH_SUBSTITUTIONS = {
   cache_tool: {
     redis:'Redis', none:'—',
   },
-  auth_issuer: {
-    internal:'Internal auth service issues all JWTs. This service validates only.',
-    auth0:'Auth0 issues all JWTs. Public key fetched from Auth0 JWKS endpoint.',
-    cognito:'AWS Cognito issues all JWTs. Public key fetched from Cognito JWKS endpoint.',
-    firebase:'Firebase Auth issues all JWTs. Public key fetched from Firebase JWKS endpoint.',
-  },
   run_platform: {
     gcp:'GCP Cloud Run', none:'hosting platform',
   },
@@ -1170,11 +1173,7 @@ function resolveTech(md){
     .replace(/Bull/g,                        TECH_SUBSTITUTIONS.queue_tool[s.queue] !== '—' ? TECH_SUBSTITUTIONS.queue_tool[s.queue] : 'Queue')
     .replace(/DLQ via Bull dead-letter queue|Bull DLQ/g, TECH_SUBSTITUTIONS.queue_dlq[s.queue] || 'DLQ')
     .replace(/Redis(?!\s*·|-backed|-backed)/g, s.cache !== 'none' ? TECH_SUBSTITUTIONS.cache_tool[s.cache] : 'cache')
-    .replace(/GCP Cloud Run/g,               TECH_SUBSTITUTIONS.run_platform[s.cloud]   || 'hosting platform')
-    .replace(/Auth service issues all JWTs\. OMS validates only\. Public key fetched from JWKS endpoint/g,
-             TECH_SUBSTITUTIONS.auth_issuer[s.auth])
-    .replace(/Auth service issues all JWTs\. This service validates only\. Public key cached/g,
-             TECH_SUBSTITUTIONS.auth_issuer[s.auth] + '. Public key cached');
+    .replace(/GCP Cloud Run/g,               TECH_SUBSTITUTIONS.run_platform[s.cloud]   || 'hosting platform');
 }
 
 
