@@ -70,6 +70,9 @@ input[type=text],textarea{width:100%;padding:10px 12px;border:0.5px solid var(--
 input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
 .field{margin-bottom:20px}
 .field-hint{font-size:11px;color:var(--text3);margin-top:5px}
+.field-err{font-size:11px;color:var(--red-text);margin-top:5px;display:none}
+.field-err.show{display:block}
+input[type=text].input-err,textarea.input-err{border-color:var(--red-border)}
 
 /* SCENARIO CARDS */
 .scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px}
@@ -357,7 +360,8 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--border3)}
     <div class="step-desc">Give the tool enough context to generate a meaningful output header.</div>
     <div class="field">
       <label>Service name</label>
-      <input type="text" id="svc-name" placeholder="e.g. Order Service" oninput="updateSummary()">
+      <input type="text" id="svc-name" placeholder="e.g. Order Service" oninput="updateSummary();clearSvcErr()">
+      <div class="field-err" id="svc-name-err">Enter a service name to continue.</div>
     </div>
     <div class="field">
       <label>One-liner description</label>
@@ -659,9 +663,15 @@ let collapsedSecs=new Set();   // section numbers currently collapsed in Fill mo
 let onlyUnfilled=false;        // Fill-mode filter: show only sections with placeholders left
 let _fillNavInit=false;        // collapse-all-on-first-open guard
 
+function clearSvcErr(){
+  const f=document.getElementById('svc-name'); if(f) f.classList.remove('input-err');
+  const e=document.getElementById('svc-name-err'); if(e) e.classList.remove('show');
+}
 function goToStep(n){
   if(n>currentStep && !document.getElementById('svc-name').value.trim()){
-    document.getElementById('svc-name').focus();return;
+    const f=document.getElementById('svc-name'); f.classList.add('input-err');
+    const e=document.getElementById('svc-name-err'); if(e) e.classList.add('show');
+    f.focus();return;
   }
   currentStep=n;
   document.querySelectorAll('.step-content').forEach(el=>el.classList.remove('active'));
